@@ -1,7 +1,7 @@
 import copy
 from value_iteration import labeled_RTDP, lexicographic_value_iteration
 
-def get_context_map(S, Contexts, contextual_orderings, objectives, Reward_functions, domain_name):
+def get_context_map(S, Contexts, domain_name):
     '''Returns a dictionary mapping each state in S to a context in Contexts.'''
     context_map = {}
     if domain_name == 'salp':
@@ -19,7 +19,8 @@ def conflict_checker(Pi, agent):
     Reachability_Reward = {s: 0 for s in agent.S}
     Reachability_Reward[agent.s_goal] = 1.0
     V = labeled_RTDP(agent, Pi, Reachability_Reward)
-    if V[agent.s0] == 0:
+    # print('Value Function: ', V)
+    if any([V[s] == 0 for s in agent.S]):
         return True
     return False
 

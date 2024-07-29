@@ -6,10 +6,13 @@ import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 from PIL import Image
 
-def animate_policy(agent, Pi, savename='animation'):
+def animate_policy(agent, Pi, savename='animation', stochastic_transition=True):
     '''Animates the agent following the given policy.'''
     agent.reset()
-    agent.follow_policy_rollout(Pi)
+    if stochastic_transition:
+        agent.follow_policy_rollout(Pi)
+    else: 
+        agent.follow_policy(Pi)
     if agent.trajectory is None:
         print('Agent has not followed any policy yet!')
         return
@@ -45,7 +48,7 @@ def display_animation(frames, savename='animation'):
     for frame in frames:
         img = mpimg.imread(frame)
         # remove 85 pixels from each side
-        img = img[85:img.shape[0]-85, 100:img.shape[1]-100,:]
+        # img = img[85:img.shape[0]-85, 100:img.shape[1]-100,:]
         im = [ax.imshow(img, animated=True)]
         # print('image shape: ', img.shape)
         ims.append(im)
@@ -98,7 +101,7 @@ def get_frame(grid, idx, state=None, savename='animation'):
     # Set the axis limits and hide the axes
     ax.set_xlim(0, ncols)
     ax.set_ylim(0, nrows)
-    ax.title.set_text(savename)
+    # ax.title.set_text(savename)
     # ax.title.set_text('state: ' + str(state))
     ax.invert_yaxis()
     ax.axis('off')

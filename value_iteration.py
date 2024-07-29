@@ -68,7 +68,7 @@ def action_set_value_iteration(agent, Reward):
     # Prune the action set
     A_pruned = {s: [] for s in S}
     for s in S:
-        A_pruned[s] = [a for a in A[s] if (Q[s][a]) >= (V[s] - 2)]
+        A_pruned[s] = [a for a in A[s] if (Q[s][a]) >= (V[s] - 0.5)]
         # print('State: ', s)
         # print('Q[s]: ', Q[s])
         # print('V[s]: ', V[s])
@@ -134,64 +134,27 @@ def labeled_RTDP(agent, Pi_G, Reward):
     
     Perform labeled Real Time Dynamic Programming to return value function
     '''
-    # is_solved = {s: False for s in agent.S}
-    # V = {s: 0 for s in agent.S}
-    # gamma = 1
-    # epsilon = 1e-6
-    # delta = 0
-    # s0 = agent.s0
-    # while not is_solved[s0]:
-    #     s = s0
-    #     while not is_solved[s]:
-    #         V_prev = copy.deepcopy(V)
-    #         a = Pi_G[s]
-    #         T = agent.get_transition_prob(s, a)
-    #         print("Reward[s]: ", Reward[s])
-    #         print("The other terms: ",gamma * sum([T[s_prime] * V_prev[s_prime] for s_prime in list(T.keys())]))
-    #         V[s] = Reward[s] + gamma * sum([T[s_prime] * V[s_prime] for s_prime in list(T.keys())])
-    #         print("delta: ", delta)
-    #         print("abs(V[s] - V_prev[s]): ", abs(V[s] - V_prev[s]))
-    #         delta = abs(V[s] - V_prev[s])
-    #         is_solved[s] = delta < epsilon
-    #         # sample a state based on the transition probabilities
-    #         print(str(s)+", "+a+" --> "+str(agent.sample_state(s, a)))
-    #         if s == agent.s_goal:
-    #             break
-    #         s = agent.sample_state(s, a)
-    # return V
-
     S = agent.S
-    A = agent.A
+    A = copy.deepcopy(Pi_G)
     V = {s: 0 for s in S}
-    Pi = {s: None for s in S}
     gamma = 0.99
     residual = {s: 0 for s in S}
-    Q = {s: {a: 0 for a in A[s]} for s in S}
+    Q = {s: {A[s]: 0} for s in S}
     iter = 0
     while True:
         V_prev = copy.deepcopy(V)
         for s in S:
-            # print('s: ', s)
             if s == agent.s_goal:
                 V[s] = Reward[s]
-                Q[s]['Noop'] = V[s]
-                Pi[s] = 'Noop'
                 residual[s] = abs(V[s] - V_prev[s])
                 continue
-            a = Pi_G[s]
-            T = agent.get_transition_prob2(s, a)
-            # print('T: ', T)
+            a = A[s]
+            T = agent.get_transition_prob(s, a)
             Q[s][a] = Reward[s] + gamma * sum([T[s_prime] * V[s_prime] for s_prime in list(T.keys())])
-            # print('Q[s]: ', Q[s])
             V[s] = max(Q[s].values())
-            # print('V[s]: ', V[s])
-            # print('V_prev[s]: ', V_prev[s])
-            Pi[s] = max(Q[s], key=Q[s].get)
             residual[s] = abs(V[s] - V_prev[s])
-            # print('residual[s]: ', residual[s])
-            # print('\n\n')
         if max(residual.values()) < 1e-6 or iter > 1000:
-            # print(simple_colors.blue('Value Iteration converged in {} iterations.\n'.format(iter)))
+            print(simple_colors.blue('L-RTDP converged in {} iterations.\n'.format(iter)))
             break
         iter += 1
     return V

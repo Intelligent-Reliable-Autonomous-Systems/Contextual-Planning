@@ -7,7 +7,7 @@ import metareasoner as MR
 from salp_mdp import SalpEnvironment, SalpAgent
 from timeit import default_timer as timer
 
-Env = SalpEnvironment("grids/salp/test5.txt")
+Env = SalpEnvironment("grids/salp/illustration.txt")
 agent = SalpAgent(Env)
 context_sim = 3 # options - 1 or 2 or 3 or 4
 context_ordering = {1: [[0, 1], [0, 1]] , 2: [[1, 0], [1, 0]], 3: [[0, 1], [1, 0]], 4: [[0, 1], [1, 0]]}
@@ -21,7 +21,7 @@ savenames = {1: 'Task > NSE Mitigation',
 Env.contextual_orderings = context_ordering[context_sim]
 agent, Pi_G = value_iteration.contextual_lexicographic_value_iteration(agent)
 conflict = MR.conflict_checker(agent.Pi_G, agent)
-print('Conflict: ', conflict)
-# agent.follow_policy_rollout(agent.Pi_G)
-display.animate_policy(agent, Pi_G)#, savenames[context_sim]) 
+if conflict: print(simple_colors.red('Conflict: ' + str(conflict), ['bold']) )
+else: print(simple_colors.green('Conflict: ' + str(conflict), ['bold']))
+display.animate_policy(agent, Pi_G, stochastic_transition=True)#, savenames[context_sim]) 
 # MR.conflict_resolver(agent.Pi_G, agent)

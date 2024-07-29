@@ -25,7 +25,7 @@ class SalpEnvironment:
         self.OMEGA = [1, 0]  # meta ordering over contexts (1: NSE mitigation, 0: Task) 1 > 0
         self.contextual_orderings = self.get_contextual_orderings()  # list of contextual orderings each a list of objectives
         self.Reward_for_obj = self.get_reward_functions()  # list of reward functions for each objective
-        self.context_map =   MR.get_context_map(self.S, self.Contexts, self.contextual_orderings, self.objectives, self.Reward_for_obj, 'salp')
+        self.context_map =   MR.get_context_map(self.S, self.Contexts, 'salp')
         self.state2context_map = self.context_map
         self.context2state_map = {}
         for context in self.Contexts:
@@ -131,6 +131,9 @@ class SalpEnvironment:
             else:
                 s_next = (s[0], s[1] + 1, s[2], self.All_States[s[0]][s[1] + 1] == 'C', s[4])
         return s_next
+    def check_context(self, s):
+        '''Return the context of the state'''
+        return self.context_names[self.state2context_map[s]]
     
 class SalpAgent:
     def __init__(self, Grid, start_location=(0,0), label='1'):
@@ -182,7 +185,10 @@ class SalpAgent:
             if s[0] == self.goal_loc[0] and s[1] == self.goal_loc[1]:
                 s[4] = True
         elif a == 'U' or a == 'D' or a == 'L' or a == 'R':
-            s = self.move_correctly(self.Grid, s, a)  # can be replaced with a sampling function to incorporate stochasticity
+            # s = self.move_correctly(self.Grid, s, a)  # can be replaced with a sampling function to incorporate stochasticity
+            T = self.get_transition_prob(tuple(s), a)
+            # s is the states with the maximum probability
+            s = max(T, key=T.get)
         elif a == 'Noop':
             s = s
         else:
@@ -243,10 +249,10 @@ class SalpAgent:
             self.s = self.sample_state(self.s, Pi[self.s])  # self.step(self.s, Pi[self.s])
             self.path = self.path + "->" + str(self.s)
             # if s is stuck in a loop or not making progress, break
-            # if len(self.trajectory) > 20:
-            #     if self.trajectory[-1] == self.trajectory[-5]:
-            #         print("Agent " + str(self.label) + " is stuck in a loop!")
-            #         break
+            if len(self.trajectory) > 20:
+                if self.trajectory[-1] == self.trajectory[-5]:
+                    print("Agent " + str(self.label) + " is stuck in a loop!")
+                    break
         self.trajectory.append((self.s, Pi[self.s], None))
                     
     def get_action_space(self):
@@ -271,59 +277,46 @@ class SalpAgent:
                     A[s].remove('pick')
         return A
 
-    def get_transition_prob(self, s, a):
+    def get_transition_prob(self, s, a, stochastic=True):
         # state of an agent: <x, y, onboard_sample, coral_flag, done_flag>
         # operation actions = ['Noop', 'pick', 'drop', 'U', 'D', 'L', 'R']
-        p_success = copy.copy(self.p_success)
-        p_fail = 1 - p_success
-        action = {0: 'U', 1: 'R', 2: 'D', 3: 'L'}
-        action_key = {'U': 0, 'R': 1, 'D': 2, 'L': 3}
-        if s == self.s_goal or a == 'Noop':
-            T = {s: 1}  # stay at the goal with prob = 1
-        elif a == 'U' or a == 'D' or a == 'L' or a == 'R':
-            s_next_correct = self.move_correctly(self.Grid, s, a)
-            s_next_slide_left = self.move_correctly(self.Grid, s, action[(action_key[a] - 1) % 4])
-            s_next_slide_right = self.move_correctly(self.Grid, s, action[(action_key[a] + 1) % 4])
-            if s_next_correct == s_next_slide_left:
-                T = {s_next_correct: round(p_success + p_fail / 2, 3), s_next_slide_right: round(p_fail / 2, 3)}
-            elif s_next_correct == s_next_slide_right:
-                T = {s_next_correct: round(p_success + p_fail / 2, 3), s_next_slide_left: round(p_fail / 2, 3)}
+        if stochastic:
+            p_success = copy.copy(self.p_success)
+            p_fail = 1 - p_success
+            action = {0: 'U', 1: 'R', 2: 'D', 3: 'L'}
+            action_key = {'U': 0, 'R': 1, 'D': 2, 'L': 3}
+            if s == self.s_goal or a == 'Noop':
+                T = {s: 1}  # stay at the goal with prob = 1
+            elif a == 'U' or a == 'D' or a == 'L' or a == 'R':
+                s_next_correct = self.move_correctly(self.Grid, s, a)
+                s_next_slide_left = self.move_correctly(self.Grid, s, action[(action_key[a] - 1) % 4])
+                s_next_slide_right = self.move_correctly(self.Grid, s, action[(action_key[a] + 1) % 4])
+                if s_next_correct == s_next_slide_left:
+                    T = {s_next_correct: round(p_success + p_fail / 2, 3), s_next_slide_right: round(p_fail / 2, 3)}
+                elif s_next_correct == s_next_slide_right:
+                    T = {s_next_correct: round(p_success + p_fail / 2, 3), s_next_slide_left: round(p_fail / 2, 3)}
+                else:
+                    T = {s_next_correct: round(p_success, 3),
+                        s_next_slide_left: round(p_fail / 2, 3),
+                        s_next_slide_right: round(p_fail / 2, 3)}
             else:
-                T = {s_next_correct: round(p_success, 3),
-                    s_next_slide_left: round(p_fail / 2, 3),
-                    s_next_slide_right: round(p_fail / 2, 3)}
+                T = {self.step(s, a): 1}  # (same: 0.2, next: 0.8)
+            # create conlficting transitions by removing stochastic slides for certain states manually 
+            # but not changing the optimal policy
+            if s == (3, 1, 'B', False, False) and (a == 'U' or a == 'D' or a == 'L' or a == 'R'):
+                T = {self.move_correctly(self.Grid, s, a): 1}
+            if s == (3, 2, 'B', True, False) and (a == 'U' or a == 'D' or a == 'L' or a == 'R'):
+                T = {self.move_correctly(self.Grid, s, a): 1}
         else:
-            T = {self.step(s, a): 1}  # (same: 0.2, next: 0.8)
-        return T
-    
-    def get_transition_prob2(self, s, a):
-        # state of an agent: <x, y, onboard_sample, coral_flag, done_flag>
-        # operation actions = ['Noop', 'pick', 'drop', 'U', 'D', 'L', 'R']
-        p_success = copy.copy(self.p_success)
-        p_fail = 1 - p_success
-        action = {0: 'U', 1: 'R', 2: 'D', 3: 'L'}
-        action_key = {'U': 0, 'R': 1, 'D': 2, 'L': 3}
-        if s == self.s_goal or s == (3,3,'B',True,False) or a == 'Noop':
-            T = {s: 1}  # stay at the goal with prob = 1
-        elif a == 'U' or a == 'D' or a == 'L' or a == 'R':
-            s_next_correct = self.move_correctly(self.Grid, s, a)
-            s_next_slide_left = self.move_correctly(self.Grid, s, action[(action_key[a] - 1) % 4])
-            s_next_slide_right = self.move_correctly(self.Grid, s, action[(action_key[a] + 1) % 4])
-            if s_next_correct == s_next_slide_left:
-                T = {s_next_correct: round(p_success + p_fail / 2, 3), s_next_slide_right: round(p_fail / 2, 3)}
-            elif s_next_correct == s_next_slide_right:
-                T = {s_next_correct: round(p_success + p_fail / 2, 3), s_next_slide_left: round(p_fail / 2, 3)}
+            if s == self.s_goal or a == 'Noop':
+                T = {s: 1}  # stay at the goal with prob = 1
             else:
-                T = {s_next_correct: round(p_success, 3),
-                    s_next_slide_left: round(p_fail / 2, 3),
-                    s_next_slide_right: round(p_fail / 2, 3)}
-        else:
-            T = {self.step(s, a): 1}  # (same: 0.2, next: 0.8)
+                T = {self.step(s, a): 1}
         return T
 
     def move_correctly(self, Grid, s, a):
         # action = {'U': 0, 'R': 1, 'D': 2, 'L': 3}
-        s_next = 0
+        # s_next = 0
         if a == 'U':
             if s[0] == 0:
                 s_next = s
