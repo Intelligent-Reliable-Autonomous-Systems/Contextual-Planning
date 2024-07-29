@@ -1,4 +1,5 @@
 import copy
+import simple_colors
 from value_iteration import labeled_RTDP, lexicographic_value_iteration
 
 def get_context_map(S, Contexts, domain_name):
@@ -26,6 +27,7 @@ def conflict_checker(Pi, agent):
 
 def conflict_resolver(Pi, agent):
     '''Returns a dictionary mapping each objective to a priority level.'''
+    print(simple_colors.cyan('Invoking Conflict Resolver', ['bold']))
     S = agent.S
     A = copy.deepcopy(agent.A_initial)
     PI = copy.deepcopy(agent.PI)  # dictionary mapping each context to it's policy over entire state space
