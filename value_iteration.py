@@ -1,4 +1,5 @@
 import copy
+import math
 import simple_colors
 
 def value_iteration(agent, Reward):
@@ -125,39 +126,6 @@ def contextual_lexicographic_value_iteration(agent):
     agent.Pi_G = Pi_G
     return agent, Pi_G
 
-# def labeled_RTDP(agent, Pi_G, Reward):
-#     '''
-#     params:
-#     agent: agent object
-#     policy: policy Pi_G
-#     Reward: reward function as dict R[s]
-    
-#     Perform labeled Real Time Dynamic Programming to return value function
-#     '''
-#     S = agent.S
-#     A = copy.deepcopy(Pi_G)
-#     V = {s: 0 for s in S}
-#     gamma = 0.99
-#     residual = {s: 0 for s in S}
-#     Q = {s: {A[s]: 0} for s in S}
-#     iter = 0
-#     while True:
-#         V_prev = copy.deepcopy(V)
-#         for s in S:
-#             if s == agent.s_goal:
-#                 V[s] = Reward[s]
-#                 residual[s] = abs(V[s] - V_prev[s])
-#                 continue
-#             a = A[s]
-#             T = agent.get_transition_prob(s, a)
-#             Q[s][a] = Reward[s] + gamma * sum([T[s_prime] * V[s_prime] for s_prime in list(T.keys())])
-#             V[s] = max(Q[s].values())
-#             residual[s] = abs(V[s] - V_prev[s])
-#         if max(residual.values()) < 1e-6 or iter > 1000:
-#             print(simple_colors.blue('L-RTDP converged in {} iterations.\n'.format(iter)))
-#             break
-#         iter += 1
-#     return V
             
 def labeled_RTDP(agent, Pi_G, Reward):
     '''
@@ -178,7 +146,6 @@ def labeled_RTDP(agent, Pi_G, Reward):
     Delta = {s: 0 for s in S}
     delta = 0
     epsilon = 1e-6
-    
     iter = 0
     while True:
         V_prev = copy.deepcopy(V)
@@ -204,3 +171,63 @@ def labeled_RTDP(agent, Pi_G, Reward):
         iter += 1
     return V
             
+def log_sum_exp(log_values):
+    max_log_value = max(log_values)
+    if max_log_value == -math.inf:
+        return -math.inf
+    return max_log_value + math.log(sum(math.exp(x - max_log_value) for x in log_values))
+
+def log_value_iteration(agent, Pi_G, Reward):
+    '''
+    params:
+    agent: agent object
+    policy: policy Pi_G
+    Reward: reward function as dict R[s]
+    
+    Perform labeled Real Time Dynamic Programming to return value function
+    '''
+    S = agent.S
+    A = copy.deepcopy(Pi_G)
+    
+    # Initialize log value function
+    U = {s: 0 for s in S}
+    U[agent.s_goal] = 0  # log(1.0) = 0
+    
+    gamma = 0.99
+    S_unsolved = [s for s in S if s != agent.s_goal]
+    S_solved = [agent.s_goal]
+    Delta = {s: 0 for s in S}
+    delta = 0
+    epsilon = 1e-6
+    iter = 0
+    
+    # Transform Reward to log space
+    R_log = {s: -math.inf for s in S}
+    R_log[agent.s_goal] = 0  # log(1.0) = 0
+    for s in Reward:
+        if Reward[s] > 0:
+            R_log[s] = math.log(Reward[s])
+
+    while True:
+        U_prev = copy.deepcopy(U)
+        S_check = []
+        for s in S_unsolved:
+            U[s] = R_log[s]
+            T = agent.get_transition_prob(s, A[s])
+            s_successors = list(T.keys())
+            log_sum = log_sum_exp([gamma * U_prev[s_prime] + math.log(T[s_prime]) for s_prime in s_successors if T[s_prime] > 0])
+            U[s] += log_sum
+            for s_prime in s_successors:
+                if s_prime in S_solved and s not in S_check:
+                    S_check.append(s)
+            delta = max(epsilon, abs(U[s] - U_prev[s]))
+            Delta[s] = abs(U[s] - U_prev[s])
+        for s in S_check:
+            if Delta[s] < epsilon:
+                S_solved.append(s)
+                S_unsolved.remove(s)
+        if delta < epsilon or iter > 1000:
+            print(simple_colors.blue('L-RTDP converged in {} iterations.\n'.format(iter)))
+            break
+        iter += 1
+    return U

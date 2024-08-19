@@ -1,6 +1,7 @@
 import copy
+import math
 import simple_colors
-from value_iteration import labeled_RTDP, lexicographic_value_iteration
+from value_iteration import labeled_RTDP, lexicographic_value_iteration, log_value_iteration
 
 def get_context_map(S, Contexts, domain_name):
     '''Returns a dictionary mapping each state in S to a context in Contexts.'''
@@ -19,16 +20,17 @@ def conflict_checker(Pi, agent):
     '''Returns a boolean indicating whether there is a conflict in Pi between contextual objectives.'''
     Reachability_Reward = {s: 0 for s in agent.S}
     Reachability_Reward[agent.s_goal] = 1.0
+    # Reachability_Reward_log = {s: -math.inf for s in agent.S}
+    # Reachability_Reward_log[agent.s_goal] = 0.0
     V = labeled_RTDP(agent, Pi, Reachability_Reward)
     # print('Value Function: ', V)
-    if any([V[s] == 0 for s in agent.S]):
+    if any([V[s] == 0.0 for s in agent.S]):
         return True
     return False
 
 def conflict_resolver(Pi, agent):
     '''Returns a dictionary mapping each objective to a priority level.'''
     print(simple_colors.cyan('Invoking Conflict Resolver', ['bold']))
-    S = agent.S
     A = copy.deepcopy(agent.A_initial)
     PI = copy.deepcopy(agent.PI)  # dictionary mapping each context to it's policy over entire state space
     Grid = agent.Grid
@@ -67,15 +69,8 @@ def conflict_resolver(Pi, agent):
             print("conflict has been resolved anfter a lexicographic update of contexts: ", context_update_ordering)
             agent.A = copy.deepcopy(agent.A_initial)
             return Pi
-
-
+    print(simple_colors.red('Conflict could not be resolved!', ['bold']))
 
 # TODO:
-# 1. Value Iterations (done)
-# 2. main.py
-# 3. layouts folder (done)
-# 4. Conflict Checker --> works with VI, now do L-RTDP
-# 5. Conflict Resolver --> Implemented
-# 6. Test with manual policies with conflicts
-# 7. A heatmap metric to show a conflict visually
+# 1. A heatmap metric to show a conflict visually
 

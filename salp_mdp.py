@@ -239,7 +239,7 @@ class SalpAgent:
         
     def follow_policy_rollout(self, Pi=None):
         if Pi is None:
-            Pi = copy.deepcopy(self.Pi)
+            Pi = copy.deepcopy(self.Pi_G)
         while not self.at_goal():
             # print(str(self.s)+ " -> " + str(Pi[self.s]) + " -> " + str( self.step(self.s, Pi[self.s])))
             R = self.Grid.R1(self.s, Pi[self.s])
