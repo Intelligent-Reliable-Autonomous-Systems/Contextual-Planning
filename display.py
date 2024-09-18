@@ -65,6 +65,7 @@ def get_frame(grid, idx, state=None, savename='animation'):
         'G': 'images/testtube.png',
         'C': 'images/coral_translucent.png',
         'D': 'images/coral_opaque_damaged.png',
+        'E': 'images/eddy.png',
         '1': 'images/salp.png',
         '2': 'images/salp_s.png',
         '3': 'images/salp_c.png',
@@ -73,7 +74,9 @@ def get_frame(grid, idx, state=None, savename='animation'):
         '6': 'images/salp_bs.png',
         '7': 'images/salp_g.png',
         '8': 'images/salp_gs.png',
-        '9': 'images/salp_gd.png',
+        '9': 'images/salp_gd2.png',
+        '~': 'images/salp_e.png',
+        '@': 'images/salp_es.png',
         
     }
 
@@ -112,28 +115,31 @@ def get_frame(grid, idx, state=None, savename='animation'):
 
 
 def get_next_all_state(s, Grid, location_tracker):
-    # s = (x, y, sample, coral, done)
+    # s: <s[0]: x, s[1]: y, s[2]: sample_status, s[3]: coral_flag, s[4]: eddy_flag>
     new_all_state = copy.deepcopy(Grid.All_States)
-    i, j, sample, coral, done = s
-    sample_flag = sample != 'X'
-    if not sample_flag and not coral and Grid.All_States[i][j] != 'B' and not done:
+    i, j, sample_status, coral, eddy = s
+    if sample_status == 'X' and not coral and not eddy and Grid.All_States[i][j] != 'B':
         new_all_state[i][j] = '1'
-    elif sample_flag and not coral and Grid.All_States[i][j] != 'B' and Grid.All_States[i][j] != 'G':
+    elif sample_status == 'P' and not coral and not eddy and Grid.All_States[i][j] != 'B' and Grid.All_States[i][j] != 'G':
         new_all_state[i][j] = '2'
-    elif not sample_flag and coral:
+    elif sample_status == 'X' and coral and not eddy:
         new_all_state[i][j] = '3'
-    elif sample_flag and coral:
+    elif sample_status == 'P' and coral and not eddy:
         new_all_state[i][j] = '4'
-    elif Grid.All_States[i][j] == 'B' and not sample_flag:
+    elif Grid.All_States[i][j] == 'B' and sample_status == 'X':
         new_all_state[i][j] = '5'
-    elif Grid.All_States[i][j] == 'B' and sample_flag:
+    elif Grid.All_States[i][j] == 'B' and sample_status == 'P':
         new_all_state[i][j] = '6'
-    elif Grid.All_States[i][j] == 'G' and not sample_flag and not done:
+    elif Grid.All_States[i][j] == 'G' and sample_status == 'X':
         new_all_state[i][j] = '7'
-    elif Grid.All_States[i][j] == 'G' and sample_flag:
+    elif Grid.All_States[i][j] == 'G' and sample_status == 'P':
         new_all_state[i][j] = '8'
-    elif Grid.All_States[i][j] == 'G' and not sample_flag and done:
+    elif Grid.All_States[i][j] == 'G' and sample_status == 'D':
         new_all_state[i][j] = '9'
+    elif Grid.All_States[i][j] == 'E' and sample_status == 'X':
+        new_all_state[i][j] = '~'
+    elif Grid.All_States[i][j] == 'E' and sample_status == 'P':
+        new_all_state[i][j] = '@'
     for loc in location_tracker:
         i_prev, j_prev = loc
         if new_all_state[i_prev][j_prev] == 'C':
@@ -143,6 +149,11 @@ def get_next_all_state(s, Grid, location_tracker):
     
     
     
+# 'B': 'images/sample2.png',
+# 'G': 'images/testtube.png',
+# 'C': 'images/coral_translucent.png',
+# 'D': 'images/coral_opaque_damaged.png',
+# 'E': 'images/eddy.png',
 # '1': 'images/salp.png',
 # '2': 'images/salp_s.png',
 # '3': 'images/salp_c.png',
@@ -152,11 +163,5 @@ def get_next_all_state(s, Grid, location_tracker):
 # '7': 'images/salp_g.png',
 # '8': 'images/salp_gs.png',
 # '9': 'images/salp_gd.png',
-# # Define your 2D array
-# grid = [
-#     ['1', '2', '3'],
-#     ['4', '5', '6'],
-#     ['7', '8', '9'],
-# ]
-
-# visualize(grid)
+# '~': 'images/salp_e.png',
+# '@': 'images/salp_es.png',

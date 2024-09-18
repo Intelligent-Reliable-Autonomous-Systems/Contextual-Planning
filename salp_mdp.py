@@ -5,7 +5,16 @@ import read_grid
 import metareasoner as MR
 
 class SalpEnvironment:
-    def __init__(self, filename):
+    def __init__(self, filename, context_sim):
+        # currently setup as ordering for context i = context_ordering[i]   
+        context_ordering = {0: [[0, 0, 0], [0, 0, 0], [0, 0, 0]], 
+                            1: [[0, 1, 2], [0, 1, 2], [0, 1, 2]], 
+                            2: [[1, 2, 0], [1, 2, 0], [1, 2, 0]], 
+                            3: [[0, 1, 2], [1, 0, 2], [2, 0, 1]], 
+                            4: [[0, 1, 2], [1, 0, 2], [2, 0, 1]],
+                            5: [[0, 1, 2], [1, 0, 2], [2, 0, 1]],}
+        
+        self.OMEGA = [1, 2, 0]  # meta ordering over contexts c1 > c2 > c0
         
         # Read the grid from the file and initialize the environment
         All_States, rows, columns = read_grid.grid_read_from_file(filename)
@@ -14,45 +23,43 @@ class SalpEnvironment:
         self.columns = columns
         goal_loc = np.where(All_States == 'G')
         self.goal_location = (goal_loc[0][0], goal_loc[1][0])
-        self.s_goal = (self.goal_location[0], self.goal_location[1], 'X', False, True)
+        # s: <s[0]: x, s[1]: y, s[2]: sample_status, s[3]: coral_flag, s[4]: eddy_flag>
+        self.s_goal = (self.goal_location[0], self.goal_location[1], 'D', False, False)
         
         # Initialize parameters for the CLMDP
         self.S = self.get_state_space()
-        self.objectives = [0, 1]
-        self.objective_names = {0: 'Task', 1: 'NSE Mitigation'}
-        self.Contexts = [0, 1]
-        self.context_names = {0: 'Task > NSE Mitigation', 1: 'NSE Mitigation > Task'}
-        self.OMEGA = [1, 0]  # meta ordering over contexts (1: NSE mitigation, 0: Task) 1 > 0
-        self.contextual_orderings = self.get_contextual_orderings()  # list of contextual orderings each a list of objectives
+        self.objectives = [i for i in context_ordering[context_sim][0]]
+        # removing duplicates in self.objectives
+        self.objectives = list(set(self.objectives))
+        self.objective_names = {0: 'Task', 1: 'Protect Coral', 2: 'Conserve Battery'}
+        self.Contexts = list(range(len(context_ordering[context_sim])))
+        self.contextual_orderings = context_ordering[context_sim]  # list of contextual orderings each a list of objectives
         self.Reward_for_obj = self.get_reward_functions()  # list of reward functions for each objective
-        self.context_map =   MR.get_context_map(self.S, self.Contexts, 'salp')
+        self.context_names = self.get_context_name(self.Contexts)
+        self.context_map =  MR.get_context_map(self.S, self.Contexts, 'salp')
         self.state2context_map = self.context_map
         self.context2state_map = {}
+        # print("Context: ", self.Contexts)
         for context in self.Contexts:
             self.context2state_map[context] = []
         for s in self.S:
             self.context2state_map[self.state2context_map[s]].append(s)
-        
-    def get_contextual_orderings(self):
-        '''Return the contextual orderings where each list in the list is a contextual ordering based on sequence of objectives'''
-        # return [[0, 1], [0, 1]]
-        # return [[1, 0], [1, 0]]
-        return [[0, 1], [1, 0]]
-        
+
     def get_state_space(self):
         S = []
         for i in range(self.rows):
             for j in range(self.columns):
-                for sample in ['B', 'X']:
-                    for done in [True, False]:
-                        S.append((i, j, sample, self.All_States[i][j]=='C', done))
+                for sample in ['X','P','D']:
+                    S.append((i, j, sample, self.All_States[i][j]=='C', self.All_States[i][j]=='E'))
         return S
 
     def get_reward_functions(self):
-        R = [self.R1, self.R2]
+        R = [self.R1, self.R2, self.R3]
         return R
 
     def R1(self, s, a):
+        # sample delivery reward
+        # state of an agent: <s[0]: x, s[1]: y, s[2]: sample_status, s[3]: coral_flag, s[4]: eddy_flag>
         s_next = self.step(s, a)
         if s_next == self.s_goal:
             return 100
@@ -60,10 +67,11 @@ class SalpEnvironment:
             return -1
     
     def R2(self, s, a):
-        weighting = {'X': 0.0, 'A': 2.0, 'B': 5.0}
+        # Coral NSE mitigation reward (penalty)
+        weighting = {'X': 0.0, 'P': 5.0, 'D': 0.0}
         nse_penalty = 0.0
         # operation actions = ['Noop', 'pick', 'drop', 'U', 'D', 'L', 'R']
-        # state of an agent: <s[0]: x, s[1]: y, s[2]: sample_with_agent, s[3]: coral_flag, s[4]: done_flag>
+        # state of an agent: <s[0]: x, s[1]: y, s[2]: sample_status, s[3]: coral_flag, s[4]: eddy_flag>
         s_next = self.step(s, a)
         if s_next[3] is True:
             nse_penalty = - weighting[s_next[2]]
@@ -71,14 +79,21 @@ class SalpEnvironment:
             nse_penalty = 0.0
         return nse_penalty
     
+    def R3(self, s, a):
+        # Eddy current battery draining (penalty)
+        # state of an agent: <s[0]: x, s[1]: y, s[2]: sample_status, s[3]: coral_flag, s[4]: eddy_flag>
+        s_next = self.step(s, a)        
+        if s_next[4] is True:
+            R = -5
+        else:
+            R = -1
+        return R
+    
     def f_R(self, obj):
         ''''Return the reward function for the given objective'''
         if obj not in self.objectives:
             print("Invalid objective")
             return None
-        # print("Reward functions: ", self.Reward_for_obj)
-        # print("Reward function for objective ", obj)
-        # print(self.Reward_for_obj[obj])
         return self.Reward_for_obj[obj]
     
     def f_w(self, context):
@@ -114,26 +129,38 @@ class SalpEnvironment:
             if s[0] == 0:
                 s_next = s
             else:
-                s_next = (s[0] - 1, s[1], s[2], self.All_States[s[0] - 1][s[1]] == 'C', s[4])
+                s_next = (s[0] - 1, s[1], s[2], self.All_States[s[0] - 1][s[1]] == 'C', self.All_States[s[0] - 1][s[1]] == 'E')
         elif a == 'D':
             if s[0] == self.rows - 1:
                 s_next = s
             else:
-                s_next = (s[0] + 1, s[1], s[2], self.All_States[s[0] + 1][s[1]] == 'C', s[4])
+                s_next = (s[0] + 1, s[1], s[2], self.All_States[s[0] + 1][s[1]] == 'C', self.All_States[s[0] + 1][s[1]] == 'E')
         elif a == 'L':
             if s[1] == 0:
                 s_next = s
             else:
-                s_next = (s[0], s[1] - 1, s[2], self.All_States[s[0]][s[1] - 1] == 'C', s[4])
+                s_next = (s[0], s[1] - 1, s[2], self.All_States[s[0]][s[1] - 1] == 'C', self.All_States[s[0]][s[1] - 1] == 'E')
         elif a == 'R':
             if s[1] == self.columns - 1:
                 s_next = s
             else:
-                s_next = (s[0], s[1] + 1, s[2], self.All_States[s[0]][s[1] + 1] == 'C', s[4])
+                s_next = (s[0], s[1] + 1, s[2], self.All_States[s[0]][s[1] + 1] == 'C', self.All_States[s[0]][s[1] + 1] == 'E')
         return s_next
+    
     def check_context(self, s):
         '''Return the context of the state'''
         return self.context_names[self.state2context_map[s]]
+    
+    def get_context_name(self, context):
+        '''Return the name of the contexts'''
+        context_names = {}
+        for context in self.Contexts:
+            context_name = ""
+            for obj in self.contextual_orderings[context]:
+                context_name += self.objective_names[obj] + " > "
+            context_name = context_name[:-3]
+            context_names[context] = context_name
+        return context_names
     
 class SalpAgent:
     def __init__(self, Grid, start_location=(0,0), label='1'):
@@ -150,9 +177,9 @@ class SalpAgent:
         
         # set the start state and the goal state in the right format:
         # s = (x, y, sample, coral, done)
-        self.s0 = (start_location[0], start_location[1], 'X', Grid.All_States[start_location[0]][start_location[1]]=='C', False)
+        self.s0 = (start_location[0], start_location[1], 'X', Grid.All_States[start_location[0]][start_location[1]]=='C', Grid.All_States[start_location[0]][start_location[1]]=='E')
         self.s = copy.deepcopy(self.s0)
-        self.s_goal = (self.goal_loc[0], self.goal_loc[1], 'X', False, True)
+        self.s_goal = (self.goal_loc[0], self.goal_loc[1], 'D', False, False)
         
         # Initialize state and action space
         self.S = Grid.S
@@ -174,21 +201,22 @@ class SalpAgent:
         self.trajectory = []
             
     def step(self, s, a):
-        # state of an agent: <x,y,sample_with_agent,coral_flag,done_flag>
+        # state of an agent: <x,y,sample_status,coral_flag,eddy>
         # operation actions = ['Noop','pick', 'drop', 'U', 'D', 'L', 'R']
         s = list(s)
         if a == 'pick':
             if self.Grid.All_States[s[0]][s[1]] == 'B':
-                s[2] = 'B'
+                s[2] = 'P'
         elif a == 'drop':
-            s[2] = 'X'
             if s[0] == self.goal_loc[0] and s[1] == self.goal_loc[1]:
-                s[4] = True
+                s[2] = 'D'
+            else:
+                s[2] = s[2]
         elif a == 'U' or a == 'D' or a == 'L' or a == 'R':
-            # s = self.move_correctly(self.Grid, s, a)  # can be replaced with a sampling function to incorporate stochasticity
-            T = self.get_transition_prob(tuple(s), a)
             # s is the states with the maximum probability
+            T = self.get_transition_prob(tuple(s), a)
             s = max(T, key=T.get)
+            # s = self.sample_state(tuple(s), a)
         elif a == 'Noop':
             s = s
         else:
@@ -258,11 +286,14 @@ class SalpAgent:
     def get_action_space(self):
         # Get the action space for salp agent
         A = {}
-        Grid = self.Grid
-        for s in self.S:
+        S = self.Grid.S
+        for s in S:
             A[s] = ['Noop', 'pick', 'drop', 'U', 'D', 'L', 'R']
+            A[s] = ['pick', 'drop', 'U', 'D', 'L', 'R']
         # Remove actions that are not possible in certain states
-        for s in self.S:
+        # s = (s[0]: x, s[1]: y, s[2]: sample_status, s[3]: coral_flag, s[4]: eddy)
+        # sample_status = {'X': no sample, 'P': sample with agent, 'D': sample delivered}
+        for s in S:
             if s[2] != 'X':
                 if 'pick' in A[s]:
                     A[s].remove('pick')
@@ -275,43 +306,40 @@ class SalpAgent:
             if s[4] is True:
                 if 'pick' in A[s]:
                     A[s].remove('pick')
+            if self.Grid.All_States[s[0]][s[1]] != 'G':
+                if 'drop' in A[s]:
+                    A[s].remove('drop')
         return A
 
-    def get_transition_prob(self, s, a, stochastic=True):
+    def get_transition_prob(self, s, a):
         # state of an agent: <x, y, onboard_sample, coral_flag, done_flag>
         # operation actions = ['Noop', 'pick', 'drop', 'U', 'D', 'L', 'R']
-        if stochastic:
-            p_success = copy.copy(self.p_success)
-            p_fail = 1 - p_success
-            action = {0: 'U', 1: 'R', 2: 'D', 3: 'L'}
-            action_key = {'U': 0, 'R': 1, 'D': 2, 'L': 3}
-            if s == self.s_goal or a == 'Noop':
-                T = {s: 1}  # stay at the goal with prob = 1
-            elif a == 'U' or a == 'D' or a == 'L' or a == 'R':
-                s_next_correct = self.move_correctly(self.Grid, s, a)
-                s_next_slide_left = self.move_correctly(self.Grid, s, action[(action_key[a] - 1) % 4])
-                s_next_slide_right = self.move_correctly(self.Grid, s, action[(action_key[a] + 1) % 4])
-                if s_next_correct == s_next_slide_left:
-                    T = {s_next_correct: round(p_success + p_fail / 2, 3), s_next_slide_right: round(p_fail / 2, 3)}
-                elif s_next_correct == s_next_slide_right:
-                    T = {s_next_correct: round(p_success + p_fail / 2, 3), s_next_slide_left: round(p_fail / 2, 3)}
-                else:
-                    T = {s_next_correct: round(p_success, 3),
-                        s_next_slide_left: round(p_fail / 2, 3),
-                        s_next_slide_right: round(p_fail / 2, 3)}
+        p_success = copy.copy(self.p_success)
+        p_fail = 1 - p_success
+        action = {0: 'U', 1: 'R', 2: 'D', 3: 'L'}
+        action_key = {'U': 0, 'R': 1, 'D': 2, 'L': 3}
+        if s == self.s_goal or a == 'Noop':
+            T = {s: 1}  # stay at the goal with prob = 1
+        elif a == 'U' or a == 'D' or a == 'L' or a == 'R':
+            s_next_correct = self.move_correctly(self.Grid, s, a)
+            s_next_slide_left = self.move_correctly(self.Grid, s, action[(action_key[a] - 1) % 4])
+            s_next_slide_right = self.move_correctly(self.Grid, s, action[(action_key[a] + 1) % 4])
+            if s_next_correct == s_next_slide_left:
+                T = {s_next_correct: round(p_success + p_fail / 2, 3), s_next_slide_right: round(p_fail / 2, 3)}
+            elif s_next_correct == s_next_slide_right:
+                T = {s_next_correct: round(p_success + p_fail / 2, 3), s_next_slide_left: round(p_fail / 2, 3)}
             else:
-                T = {self.step(s, a): 1}  # (same: 0.2, next: 0.8)
-            # create conlficting transitions by removing stochastic slides for certain states manually 
-            # but not changing the optimal policy
-            if s == (3, 1, 'B', False, False) and (a == 'U' or a == 'D' or a == 'L' or a == 'R'):
-                T = {self.move_correctly(self.Grid, s, a): 1}
-            if s == (3, 2, 'B', True, False) and (a == 'U' or a == 'D' or a == 'L' or a == 'R'):
-                T = {self.move_correctly(self.Grid, s, a): 1}
+                T = {s_next_correct: round(p_success, 3),
+                    s_next_slide_left: round(p_fail / 2, 3),
+                    s_next_slide_right: round(p_fail / 2, 3)}
         else:
-            if s == self.s_goal or a == 'Noop':
-                T = {s: 1}  # stay at the goal with prob = 1
-            else:
-                T = {self.step(s, a): 1}
+            T = {self.step(s, a): 1}  # (same: 0.2, next: 0.8)
+        # create conlficting transitions by removing stochastic slides for certain states manually 
+        # but not changing the optimal policy
+        if s == (3, 2, 'P', True, False) and (a == 'U' or a == 'D' or a == 'L' or a == 'R'):
+            T = {self.move_correctly(self.Grid, s, a): 1}
+        if s == (3, 1, 'P', False, False) and (a == 'U' or a == 'D' or a == 'L' or a == 'R'):
+            T = {self.move_correctly(self.Grid, s, a): 1}
         return T
 
     def move_correctly(self, Grid, s, a):
@@ -321,20 +349,20 @@ class SalpAgent:
             if s[0] == 0:
                 s_next = s
             else:
-                s_next = (s[0] - 1, s[1], s[2], Grid.All_States[s[0] - 1][s[1]] == 'C', s[4])
+                s_next = (s[0] - 1, s[1], s[2], Grid.All_States[s[0] - 1][s[1]] == 'C', Grid.All_States[s[0] - 1][s[1]] == 'E') 
         elif a == 'D':
             if s[0] == Grid.rows - 1:
                 s_next = s
             else:
-                s_next = (s[0] + 1, s[1], s[2], Grid.All_States[s[0] + 1][s[1]] == 'C', s[4])
+                s_next = (s[0] + 1, s[1], s[2], Grid.All_States[s[0] + 1][s[1]] == 'C', Grid.All_States[s[0] + 1][s[1]] == 'E')
         elif a == 'L':
             if s[1] == 0:
                 s_next = s
             else:
-                s_next = (s[0], s[1] - 1, s[2], Grid.All_States[s[0]][s[1] - 1] == 'C', s[4])
+                s_next = (s[0], s[1] - 1, s[2], Grid.All_States[s[0]][s[1] - 1] == 'C', Grid.All_States[s[0]][s[1] - 1] == 'E')
         elif a == 'R':
             if s[1] == Grid.columns - 1:
                 s_next = s
             else:
-                s_next = (s[0], s[1] + 1, s[2], Grid.All_States[s[0]][s[1] + 1] == 'C', s[4])
+                s_next = (s[0], s[1] + 1, s[2], Grid.All_States[s[0]][s[1] + 1] == 'C', Grid.All_States[s[0]][s[1] + 1] == 'E')
         return s_next
