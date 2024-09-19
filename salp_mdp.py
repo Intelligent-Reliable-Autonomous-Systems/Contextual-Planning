@@ -12,7 +12,8 @@ class SalpEnvironment:
                             2: [[1, 2, 0], [1, 2, 0], [1, 2, 0]], 
                             3: [[0, 1, 2], [1, 0, 2], [2, 0, 1]], 
                             4: [[0, 1, 2], [1, 0, 2], [2, 0, 1]],
-                            5: [[0, 1, 2], [1, 0, 2], [2, 0, 1]],}
+                            5: [[0, 1, 2], [1, 0, 2], [2, 0, 1]],
+                            6: [[0, 1, 2], [1, 0, 2], [2, 0, 1]],}
         
         self.OMEGA = [1, 2, 0]  # meta ordering over contexts c1 > c2 > c0
         
@@ -171,6 +172,9 @@ class SalpAgent:
         self.label = label
         self.IDX = int(label) - 1
         self.goal_loc = Grid.goal_location
+        
+        # Set the scalarization weights for the context objectives (assuming 3 objectives in each context)
+        self.scalarization_weights = [0.5, 0.3, 0.2]
         
         # Set the success probability of the agent
         self.p_success = 0.8

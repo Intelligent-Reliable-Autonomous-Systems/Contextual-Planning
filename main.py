@@ -6,20 +6,23 @@ import metareasoner as MR
 from salp_mdp import SalpEnvironment, SalpAgent
 from timeit import default_timer as timer
 
-context_sim = 1 # options - [0, 1, 2, 3, 4, 5]
-for context_sim in range(5):
+context_sim = 1 # options - [0, 1, 2, 3, 4, 5, 6]
+for context_sim in range(6):
     savenames = {0: 'Task only',
                 1: 'Task > NSE Mitigation', 
                 2: 'NSE Mitigation > Task', 
-                3: 'Contextial Approach without Conflict Resolution', 
-                4: 'Contextial Approach with Conflict Resolution',
-                5: 'Oracle'}
+                3: 'Scalarization',
+                4: 'Contextial Approach without Conflict Resolution', 
+                5: 'Contextial Approach with Conflict Resolution',
+                6: 'Oracle'}
 
     print(simple_colors.cyan('Context Simulation: ' + savenames[context_sim], ['bold', 'underlined']))
     Env = SalpEnvironment("grids/salp/illustration_eddy.txt", context_sim)
     agent = SalpAgent(Env)
-    if context_sim == 5:
+    if context_sim == 6:
         Pi_G = oracle_policy.contextual_lexicographic_value_iteration_oracle(agent)
+    elif context_sim == 5:
+        agent, Pi_G = value_iteration.contextual_scalarized_value_iteration(agent)
     else:
         agent, Pi_G = value_iteration.contextual_lexicographic_value_iteration(agent)
     agent.Pi_G = Pi_G
