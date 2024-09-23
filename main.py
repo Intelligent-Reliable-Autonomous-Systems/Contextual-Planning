@@ -3,11 +3,20 @@ import display
 import value_iteration
 import oracle_policy
 import metareasoner as MR
-from salp_mdp import SalpEnvironment, SalpAgent
 from timeit import default_timer as timer
 
+domain = 'warehouse' # options - ['salp', 'warehouse']
 context_sim = 1 # options - [0, 1, 2, 3, 4, 5, 6]
+
 for context_sim in range(6):
+    if domain == 'salp':
+        from salp_mdp import SalpEnvironment, SalpAgent
+        Env = SalpEnvironment("grids/salp/illustration_eddy.txt", context_sim)
+        agent = SalpAgent(Env)
+    elif domain == 'warehouse':
+        from warehouse_mdp import WarehouseEnvironment, WarehouseAgent
+        Env = WarehouseEnvironment("grids/warehouse/illustration.txt", context_sim)
+        agent = WarehouseAgent(Env)
     savenames = {0: 'Task only',
                 1: 'Task > NSE Mitigation', 
                 2: 'NSE Mitigation > Task', 
@@ -17,11 +26,9 @@ for context_sim in range(6):
                 6: 'Oracle'}
 
     print(simple_colors.cyan('Context Simulation: ' + savenames[context_sim], ['bold', 'underlined']))
-    Env = SalpEnvironment("grids/salp/illustration_eddy.txt", context_sim)
-    agent = SalpAgent(Env)
     if context_sim == 6:
         Pi_G = oracle_policy.contextual_lexicographic_value_iteration_oracle(agent)
-    elif context_sim == 5:
+    elif context_sim == 3:
         agent, Pi_G = value_iteration.contextual_scalarized_value_iteration(agent)
     else:
         agent, Pi_G = value_iteration.contextual_lexicographic_value_iteration(agent)
@@ -29,11 +36,13 @@ for context_sim in range(6):
     conflict = MR.conflict_checker(Pi_G, agent)
     if conflict: print(simple_colors.red('Conflict Detected!', ['bold']) )
     else: print(simple_colors.green('No Conflicts', ['bold']))
-    if context_sim == 4:
+    if context_sim == 5:
         Pi_G = MR.conflict_resolver(Pi_G, agent)
         conflict = MR.conflict_checker(Pi_G, agent)
         if conflict: print(simple_colors.red('Conflict Detected!', ['bold']) )
         else: print(simple_colors.green('No Conflicts', ['bold']))
-    # print(Pi_G)
-    display.animate_policy(agent, Pi_G, stochastic_transition=False)#, savenames[context_sim]) 
+    if domain == 'salp':
+        display.animate_policy_salp(agent, Pi_G, stochastic_transition=False)#, savenames[context_sim]) 
+    elif domain == 'warehouse':
+        display.animate_policy_warehouse(agent, Pi_G, stochastic_transition=False)#, savenames[context_sim]) 
     wait = input("Press Enter to continue...")

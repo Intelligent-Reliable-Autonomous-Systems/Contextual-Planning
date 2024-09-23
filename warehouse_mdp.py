@@ -4,7 +4,7 @@ import numpy as np
 import read_grid
 import metareasoner as MR
 
-class SalpEnvironment:
+class WarehouseEnvironment:
     def __init__(self, filename, context_sim):
         # currently setup as ordering for context i = context_ordering[i]   
         context_ordering = {0: [[0, 0, 0], [0, 0, 0], [0, 0, 0]], 
@@ -24,7 +24,7 @@ class SalpEnvironment:
         self.columns = columns
         goal_loc = np.where(All_States == 'G')
         self.goal_location = (goal_loc[0][0], goal_loc[1][0])
-        # s: <s[0]: x, s[1]: y, s[2]: sample_status, s[3]: coral_flag, s[4]: eddy_flag>
+        # s = (s[0]: x, s[1]: y, s[2]: package_status, s[3]: slippery_tile, s[4]: narrow_corridor)
         self.s_goal = (self.goal_location[0], self.goal_location[1], 'D', False, False)
         
         # Initialize parameters for the CLMDP
@@ -32,7 +32,7 @@ class SalpEnvironment:
         self.objectives = [i for i in context_ordering[context_sim][0]]
         # removing duplicates in self.objectives
         self.objectives = list(set(self.objectives))
-        self.objective_names = {0: 'Task', 1: 'Protect Coral', 2: 'Conserve Battery'}
+        self.objective_names = {0: 'Package Task', 1: 'Avoid Slip', 2: 'Navigate Narrow Corridor'}
         self.Contexts = list(range(len(context_ordering[context_sim])))
         self.contextual_orderings = context_ordering[context_sim]  # list of contextual orderings each a list of objectives
         self.Reward_for_obj = self.get_reward_functions()  # list of reward functions for each objective
@@ -48,10 +48,11 @@ class SalpEnvironment:
 
     def get_state_space(self):
         S = []
+        # s = (s[0]: x, s[1]: y, s[2]: package_status, s[3]: slippery_tile, s[4]: narrow_corridor)
         for i in range(self.rows):
             for j in range(self.columns):
-                for sample in ['X','P','D']:
-                    S.append((i, j, sample, self.All_States[i][j]=='C', self.All_States[i][j]=='E'))
+                for package_status in ['X','P','D']:
+                    S.append((i, j, package_status, self.All_States[i][j]=='S', self.All_States[i][j]=='#'))
         return S
 
     def get_reward_functions(self):
@@ -59,8 +60,8 @@ class SalpEnvironment:
         return R
 
     def R1(self, s, a):
-        # sample delivery reward
-        # state of an agent: <s[0]: x, s[1]: y, s[2]: sample_status, s[3]: coral_flag, s[4]: eddy_flag>
+        # box delivery reward
+        # s = (s[0]: x, s[1]: y, s[2]: package_status, s[3]: slippery_tile, s[4]: narrow_corridor)
         s_next = self.step(s, a)
         if s_next == self.s_goal:
             return 100
@@ -68,11 +69,11 @@ class SalpEnvironment:
             return -1
     
     def R2(self, s, a):
-        # Coral NSE mitigation reward (penalty)
+        # slippery tile NSE mitigation reward (penalty)
         weighting = {'X': 0.0, 'P': 5.0, 'D': 0.0}
         nse_penalty = 0.0
         # operation actions = ['Noop', 'pick', 'drop', 'U', 'D', 'L', 'R']
-        # state of an agent: <s[0]: x, s[1]: y, s[2]: sample_status, s[3]: coral_flag, s[4]: eddy_flag>
+        # s = (s[0]: x, s[1]: y, s[2]: package_status, s[3]: slippery_tile, s[4]: narrow_corridor)
         s_next = self.step(s, a)
         if s_next[3] is True:
             nse_penalty = - weighting[s_next[2]]
@@ -81,8 +82,8 @@ class SalpEnvironment:
         return nse_penalty
     
     def R3(self, s, a):
-        # Eddy current battery draining (penalty)
-        # state of an agent: <s[0]: x, s[1]: y, s[2]: sample_status, s[3]: coral_flag, s[4]: eddy_flag>
+        # Narrow corridor inconvenience draining (penalty)
+        # s = (s[0]: x, s[1]: y, s[2]: package_status, s[3]: slippery_tile, s[4]: narrow_corridor)
         s_next = self.step(s, a)        
         if s_next[4] is True:
             R = -5
@@ -105,7 +106,7 @@ class SalpEnvironment:
         return self.contextual_orderings[context]
     
     def step(self, s, a):
-        # state of an agent: <x,y,sample_with_agent,coral_flag,done_flag>
+        # s = (s[0]: x, s[1]: y, s[2]: package_status, s[3]: slippery_tile, s[4]: narrow_corridor)
         # operation actions = ['Noop','pick', 'drop', 'U', 'D', 'L', 'R']
         s = list(s)
         if a == 'pick':
@@ -125,27 +126,28 @@ class SalpEnvironment:
         return s
     def move_correctly(self, s, a):
         # action = {'U': 0, 'R': 1, 'D': 2, 'L': 3}
+        # s = (s[0]: x, s[1]: y, s[2]: package_status, s[3]: slippery_tile, s[4]: narrow_corridor)
         s_next = 0
         if a == 'U':
             if s[0] == 0:
                 s_next = s
             else:
-                s_next = (s[0] - 1, s[1], s[2], self.All_States[s[0] - 1][s[1]] == 'C', self.All_States[s[0] - 1][s[1]] == 'E')
+                s_next = (s[0] - 1, s[1], s[2], self.All_States[s[0] - 1][s[1]] == 'S', self.All_States[s[0] - 1][s[1]] == '#')
         elif a == 'D':
             if s[0] == self.rows - 1:
                 s_next = s
             else:
-                s_next = (s[0] + 1, s[1], s[2], self.All_States[s[0] + 1][s[1]] == 'C', self.All_States[s[0] + 1][s[1]] == 'E')
+                s_next = (s[0] + 1, s[1], s[2], self.All_States[s[0] + 1][s[1]] == 'S', self.All_States[s[0] + 1][s[1]] == '#')
         elif a == 'L':
             if s[1] == 0:
                 s_next = s
             else:
-                s_next = (s[0], s[1] - 1, s[2], self.All_States[s[0]][s[1] - 1] == 'C', self.All_States[s[0]][s[1] - 1] == 'E')
+                s_next = (s[0], s[1] - 1, s[2], self.All_States[s[0]][s[1] - 1] == 'S', self.All_States[s[0]][s[1] - 1] == '#')
         elif a == 'R':
             if s[1] == self.columns - 1:
                 s_next = s
             else:
-                s_next = (s[0], s[1] + 1, s[2], self.All_States[s[0]][s[1] + 1] == 'C', self.All_States[s[0]][s[1] + 1] == 'E')
+                s_next = (s[0], s[1] + 1, s[2], self.All_States[s[0]][s[1] + 1] == 'S', self.All_States[s[0]][s[1] + 1] == '#')
         return s_next
     
     def check_context(self, s):
@@ -163,7 +165,7 @@ class SalpEnvironment:
             context_names[context] = context_name
         return context_names
     
-class SalpAgent:
+class WarehouseAgent:
     def __init__(self, Grid, start_location=(0,0), label='1'):
         
         # Initialize the agent with environment, sample, start location, and label (to identify incase of multi-agent scenario)
@@ -177,8 +179,8 @@ class SalpAgent:
         self.p_success = 0.8
         
         # set the start state and the goal state in the right format:
-        # s = (x, y, sample, coral, done)
-        self.s0 = (start_location[0], start_location[1], 'X', Grid.All_States[start_location[0]][start_location[1]]=='C', Grid.All_States[start_location[0]][start_location[1]]=='E')
+        # s = (s[0]: x, s[1]: y, s[2]: package_status, s[3]: slippery_tile, s[4]: narrow_corridor)
+        self.s0 = (start_location[0], start_location[1], 'X', Grid.All_States[start_location[0]][start_location[1]]=='S', Grid.All_States[start_location[0]][start_location[1]]=='#')
         self.s = copy.deepcopy(self.s0)
         self.s_goal = (self.goal_loc[0], self.goal_loc[1], 'D', False, False)
         
@@ -208,7 +210,7 @@ class SalpAgent:
         self.trajectory = []
             
     def step(self, s, a):
-        # state of an agent: <x,y,sample_status,coral_flag,eddy>
+        # s = (s[0]: x, s[1]: y, s[2]: package_status, s[3]: slippery_tile, s[4]: narrow_corridor)
         # operation actions = ['Noop','pick', 'drop', 'U', 'D', 'L', 'R']
         s = list(s)
         if a == 'pick':
@@ -298,8 +300,8 @@ class SalpAgent:
             A[s] = ['Noop', 'pick', 'drop', 'U', 'D', 'L', 'R']
             A[s] = ['pick', 'drop', 'U', 'D', 'L', 'R']
         # Remove actions that are not possible in certain states
-        # s = (s[0]: x, s[1]: y, s[2]: sample_status, s[3]: coral_flag, s[4]: eddy)
-        # sample_status = {'X': no sample, 'P': sample with agent, 'D': sample delivered}
+        # s = (s[0]: x, s[1]: y, s[2]: package_status, s[3]: slippery_tile, s[4]: narrow_corridor)
+        # package_status = {'X': no sample, 'P': package with agent, 'D': package delivered}
         for s in S:
             if s[2] != 'X':
                 if 'pick' in A[s]:
@@ -319,7 +321,7 @@ class SalpAgent:
         return A
 
     def get_transition_prob(self, s, a):
-        # state of an agent: <x, y, onboard_sample, coral_flag, done_flag>
+        # s = (s[0]: x, s[1]: y, s[2]: package_status, s[3]: slippery_tile, s[4]: narrow_corridor)
         # operation actions = ['Noop', 'pick', 'drop', 'U', 'D', 'L', 'R']
         p_success = copy.copy(self.p_success)
         p_fail = 1 - p_success
@@ -356,22 +358,22 @@ class SalpAgent:
             if s[0] == 0:
                 s_next = s
             else:
-                s_next = (s[0] - 1, s[1], s[2], Grid.All_States[s[0] - 1][s[1]] == 'C', Grid.All_States[s[0] - 1][s[1]] == 'E') 
+                s_next = (s[0] - 1, s[1], s[2], Grid.All_States[s[0] - 1][s[1]] == 'S', Grid.All_States[s[0] - 1][s[1]] == '#') 
         elif a == 'D':
             if s[0] == Grid.rows - 1:
                 s_next = s
             else:
-                s_next = (s[0] + 1, s[1], s[2], Grid.All_States[s[0] + 1][s[1]] == 'C', Grid.All_States[s[0] + 1][s[1]] == 'E')
+                s_next = (s[0] + 1, s[1], s[2], Grid.All_States[s[0] + 1][s[1]] == 'S', Grid.All_States[s[0] + 1][s[1]] == '#')
         elif a == 'L':
             if s[1] == 0:
                 s_next = s
             else:
-                s_next = (s[0], s[1] - 1, s[2], Grid.All_States[s[0]][s[1] - 1] == 'C', Grid.All_States[s[0]][s[1] - 1] == 'E')
+                s_next = (s[0], s[1] - 1, s[2], Grid.All_States[s[0]][s[1] - 1] == 'S', Grid.All_States[s[0]][s[1] - 1] == '#')
         elif a == 'R':
             if s[1] == Grid.columns - 1:
                 s_next = s
             else:
-                s_next = (s[0], s[1] + 1, s[2], Grid.All_States[s[0]][s[1] + 1] == 'C', Grid.All_States[s[0]][s[1] + 1] == 'E')
+                s_next = (s[0], s[1] + 1, s[2], Grid.All_States[s[0]][s[1] + 1] == 'S', Grid.All_States[s[0]][s[1] + 1] == '#')
         return s_next
 
     def get_normalization(self, R):

@@ -9,12 +9,22 @@ def get_context_map(S, Contexts, domain_name):
         for s in S:
             # context_map[s] = None  # ICP by Yash
             # s = (s[0]: x, s[1]: y, s[2]: sample_with_agent, s[3]: coral_flag, s[4]: eddy, s[5]: done_flag)
-            if s[2] != 'X' and s[3] is True:
-                context_map[s] = 1 # Context 1 - Prioritize NSE escape
+            if s[2] == 'P' and s[3] is True:
+                context_map[s] = 1 # Context 1 - Prioritize coral NSE escape
             elif s[4] is True:
                 context_map[s] = 2 # Context 2 - Prioritize Eddy escape
             else:
                 context_map[s] = 0 # Context 3 - Prioritize Task
+    elif domain_name == 'warehouse':
+        for s in S:
+            # context_map[s] = None  # ICP by Yash
+            # s = (s[0]: x, s[1]: y, s[2]: package_status, s[3]: slippery_tile, s[4]: narrow_corridor)
+            if s[2] == 'P' and s[3] is True:
+                context_map[s] = 1 # Context 1 - Prioritize slippery tile NSE escape
+            elif s[4] is True:
+                context_map[s] = 2 # Context 2 - Prioritize moving out of narrow corridor
+            else:
+                context_map[s] = 0 # Context 3 - Prioritize package delivery Task
     return context_map
 
 def conflict_checker(Pi, agent):

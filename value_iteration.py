@@ -139,13 +139,13 @@ def scalarized_value_iteration(agent, ordering):
         V_prev = copy.deepcopy(V)
         for s in S:
             if s == agent.s_goal:
-                V[s] = sum([agent.scalarization_weights[i] * agent.Grid.f_R(ordering[i])(s, 'Noop') for i in range(len(ordering))])
+                V[s] = sum([agent.scalarization_weights[i] * agent.Grid.f_R(ordering[i])(s, 'Noop') / agent.R_norm[ordering[i]] for i in range(len(ordering))])
                 Pi[s] = 'Noop'
                 residual[s] = abs(V[s] - V_prev[s])
                 continue
             for a in A[s]:
                 T = agent.get_transition_prob(s, a)
-                scalarized_reward = sum([agent.scalarization_weights[i] * agent.Grid.f_R(ordering[i])(s, a) for i in range(len(ordering))])
+                scalarized_reward = sum([agent.scalarization_weights[i] * agent.Grid.f_R(ordering[i])(s, a) / agent.R_norm[ordering[i]] for i in range(len(ordering))])
                 Q[s][a] = scalarized_reward + gamma * sum([T[s_prime] * V[s_prime] for s_prime in list(T.keys())])
             V[s] = max(Q[s].values())
             Pi[s] = max(Q[s], key=Q[s].get)
