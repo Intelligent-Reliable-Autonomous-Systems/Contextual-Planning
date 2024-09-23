@@ -1,10 +1,6 @@
-..........
-..t.......
-t.sss.sss.
-..sss.sss.
-sssssssss.
-sssss.sss.
-ssssss.ss.
-sssssssss.
-ssssssss..
-sssssssssg
+......
+B.S.#.
+S.S.#.
+#.SS..
+#SSSS.
+##SSG.
