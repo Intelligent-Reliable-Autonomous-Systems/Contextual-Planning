@@ -21,8 +21,8 @@ for context_sim in range(6):
                 1: 'Task > NSE Mitigation', 
                 2: 'NSE Mitigation > Task', 
                 3: 'Scalarization',
-                4: 'Contextial Approach without Conflict Resolution', 
-                5: 'Contextial Approach with Conflict Resolution',
+                4: 'Contextual Approach without Conflict Resolution', 
+                5: 'Contextual Approach with Conflict Resolution',
                 6: 'Oracle'}
 
     print(simple_colors.cyan('Context Simulation: ' + savenames[context_sim], ['bold', 'underlined']))
@@ -42,7 +42,7 @@ for context_sim in range(6):
         if conflict: print(simple_colors.red('Conflict Detected!', ['bold']) )
         else: print(simple_colors.green('No Conflicts', ['bold']))
     if domain == 'salp':
-        display.animate_policy_salp(agent, Pi_G, stochastic_transition=False)#, savenames[context_sim]) 
+        display.animate_policy_salp(agent, Pi_G, savenames[context_sim], stochastic_transition=False)#, savenames[context_sim]) 
     elif domain == 'warehouse':
-        display.animate_policy_warehouse(agent, Pi_G, stochastic_transition=False)#, savenames[context_sim]) 
+        display.animate_policy_warehouse(agent, Pi_G, savenames[context_sim], stochastic_transition=False)#, savenames[context_sim]) 
     wait = input("Press Enter to continue...")

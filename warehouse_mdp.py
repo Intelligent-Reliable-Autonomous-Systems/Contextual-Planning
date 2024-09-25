@@ -63,32 +63,37 @@ class WarehouseEnvironment:
         # box delivery reward
         # s = (s[0]: x, s[1]: y, s[2]: package_status, s[3]: slippery_tile, s[4]: narrow_corridor)
         s_next = self.step(s, a)
-        if s_next == self.s_goal:
+        # print("s_next: ", s_next)
+        if s_next == self.s_goal and a != 'Noop':
             return 100
+        elif s_next == self.s_goal and a == 'Noop':
+            return 0
         else:
             return -1
     
     def R2(self, s, a):
         # slippery tile NSE mitigation reward (penalty)
-        weighting = {'X': 0.0, 'P': 5.0, 'D': 0.0}
-        nse_penalty = 0.0
+        weighting = {'X': 0, 'P': 20, 'D': 0}
+        nse_penalty = 0
         # operation actions = ['Noop', 'pick', 'drop', 'U', 'D', 'L', 'R']
         # s = (s[0]: x, s[1]: y, s[2]: package_status, s[3]: slippery_tile, s[4]: narrow_corridor)
         s_next = self.step(s, a)
+        # print("s_next: ", s_next)
         if s_next[3] is True:
             nse_penalty = - weighting[s_next[2]]
         else:
-            nse_penalty = 0.0
+            nse_penalty = 0
         return nse_penalty
     
     def R3(self, s, a):
         # Narrow corridor inconvenience draining (penalty)
         # s = (s[0]: x, s[1]: y, s[2]: package_status, s[3]: slippery_tile, s[4]: narrow_corridor)
-        s_next = self.step(s, a)        
+        s_next = self.step(s, a)  
+        # print("s_next: ", s_next)      
         if s_next[4] is True:
-            R = -5
+            R = -10
         else:
-            R = -1
+            R = 0
         return R
     
     def f_R(self, obj):
@@ -111,19 +116,21 @@ class WarehouseEnvironment:
         s = list(s)
         if a == 'pick':
             if self.All_States[s[0]][s[1]] == 'B':
-                s[2] = 'B'
+                s[2] = 'P'
         elif a == 'drop':
-            s[2] = 'X'
             if s[0] == self.goal_location[0] and s[1] == self.goal_location[1]:
-                s[4] = True
+                s[2] = 'D'
+            else:
+                s[2] = s[2]
         elif a == 'U' or a == 'D' or a == 'L' or a == 'R':
-            s = self.move_correctly(s, a)  # can be replaced with a sampling function to incorporate stochasticity
+             s = self.move_correctly(s, a)
         elif a == 'Noop':
             s = s
         else:
             print("INVALID ACTION: ", a)
         s = tuple(s)
         return s
+    
     def move_correctly(self, s, a):
         # action = {'U': 0, 'R': 1, 'D': 2, 'L': 3}
         # s = (s[0]: x, s[1]: y, s[2]: package_status, s[3]: slippery_tile, s[4]: narrow_corridor)
@@ -201,6 +208,9 @@ class WarehouseAgent:
         self.Pi = {}
         self.Pi_G = {}  # Global synthesized policy
         self.PI = {}  # policy from all contexts in a dictionary mapping context to policy
+        self.r_1 = 0
+        self.r_2 = 0
+        self.r_3 = 0
         for context in Grid.Contexts:
             self.PI[context] = {}
         

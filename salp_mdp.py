@@ -105,24 +105,29 @@ class SalpEnvironment:
         return self.contextual_orderings[context]
     
     def step(self, s, a):
-        # state of an agent: <x,y,sample_with_agent,coral_flag,done_flag>
+        # state of an agent: <x,y,sample_status,coral_flag,eddy>
         # operation actions = ['Noop','pick', 'drop', 'U', 'D', 'L', 'R']
         s = list(s)
         if a == 'pick':
-            if self.All_States[s[0]][s[1]] == 'B':
-                s[2] = 'B'
+            if self.Grid.All_States[s[0]][s[1]] == 'B':
+                s[2] = 'P'
         elif a == 'drop':
-            s[2] = 'X'
-            if s[0] == self.goal_location[0] and s[1] == self.goal_location[1]:
-                s[4] = True
+            if s[0] == self.goal_loc[0] and s[1] == self.goal_loc[1]:
+                s[2] = 'D'
+            else:
+                s[2] = s[2]
         elif a == 'U' or a == 'D' or a == 'L' or a == 'R':
-            s = self.move_correctly(s, a)  # can be replaced with a sampling function to incorporate stochasticity
+            # s is the states with the maximum probability
+            T = self.get_transition_prob(tuple(s), a)
+            s = max(T, key=T.get)
+            # s = self.sample_state(tuple(s), a)
         elif a == 'Noop':
             s = s
         else:
             print("INVALID ACTION: ", a)
         s = tuple(s)
         return s
+    
     def move_correctly(self, s, a):
         # action = {'U': 0, 'R': 1, 'D': 2, 'L': 3}
         s_next = 0
