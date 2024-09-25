@@ -47,7 +47,7 @@ def animate_policy_salp(agent, Pi, savename='animation', stochastic_transition=T
     location_tracker = []
     for idx, s in enumerate(state_list):
         next_all_state, location_tracker = get_next_all_state_salp(s, agent.Grid, location_tracker)
-        get_frame_salp(next_all_state, idx, s, savename)   
+        get_frame_salp(agent, next_all_state, idx, s, savename)   
         frames.append('animation/{}.png'.format(idx))
     display_animation(frames, savename,fps=4)
     # delete all images
@@ -55,7 +55,7 @@ def animate_policy_salp(agent, Pi, savename='animation', stochastic_transition=T
         path = 'animation/{}.png'.format(idx)
         os.remove(path)
     
-def get_frame_salp(grid, idx, state=None, savename='animation'):
+def get_frame_salp(agent, grid, idx, state=None, savename='animation'):
     # Load the icons
     icon_paths = {
         'B': 'images/salp/sample2.png',
@@ -101,6 +101,18 @@ def get_frame_salp(grid, idx, state=None, savename='animation'):
     # Set the axis limits and hide the axes
     ax.set_xlim(0, ncols)
     ax.set_ylim(0, nrows)
+    print('state: ', state, 'action: ', agent.Pi_G[state])
+    print('\tR1: ', agent.Grid.R1(state, agent.Pi_G[state]))
+    print('\tR2: ', agent.Grid.R2(state, agent.Pi_G[state]))
+    print('\tR3: ', agent.Grid.R3(state, agent.Pi_G[state]))
+    print()
+    ax.title.set_text(savename + "\n" +
+                  r"$R_1 = $" + f"{agent.r_1:3d}" + "\t" +
+                  r"$R_2 = $" + f"{agent.r_2:3d}" + "\t" +
+                  r"$R_3 = $" + f"{agent.r_3:3d}")
+    agent.r_1 += agent.Grid.R1(state, agent.Pi_G[state])
+    agent.r_2 += agent.Grid.R2(state, agent.Pi_G[state])
+    agent.r_3 += agent.Grid.R3(state, agent.Pi_G[state])
     ax.title.set_text(savename)
     # ax.title.set_text('state: ' + str(state))
     ax.invert_yaxis()
@@ -227,8 +239,6 @@ def get_frame_warehouse(agent, grid, idx, state=None, savename='animation'):
     print('\tR2: ', agent.Grid.R2(state, agent.Pi_G[state]))
     print('\tR3: ', agent.Grid.R3(state, agent.Pi_G[state]))
     print()
-    # ax.title.set_text(savename+"\n"+r"$R_1 = $"+str(agent.r_1)+"\t "+r"$R_2 = $"+str(agent.r_2)+"\t "+r"$R_3 = $"+str(agent.r_3))
-    # ax.title.set_text('state: ' + str(state))
     ax.title.set_text(savename + "\n" +
                   r"$R_1 = $" + f"{agent.r_1:3d}" + "\t" +
                   r"$R_2 = $" + f"{agent.r_2:3d}" + "\t" +
