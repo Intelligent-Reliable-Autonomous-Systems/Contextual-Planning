@@ -4,16 +4,16 @@ import numpy as np
 import read_grid
 import metareasoner as MR
 
-class WarehouseEnvironment:
+class TaxiEnvironment:
     def __init__(self, filename, context_sim):
         # currently setup as ordering for context i = context_ordering[i]   
         context_ordering = {0: [[0, 0, 0], [0, 0, 0], [0, 0, 0]], 
-                            1: [[0, 1, 2], [0, 1, 2], [0, 1, 2]], 
-                            2: [[1, 2, 0], [1, 2, 0], [1, 2, 0]], 
-                            3: [[0, 1, 2], [1, 0, 2], [2, 0, 1]], 
-                            4: [[0, 1, 2], [1, 0, 2], [2, 0, 1]],
-                            5: [[0, 1, 2], [1, 0, 2], [2, 0, 1]],
-                            6: [[0, 1, 2], [1, 0, 2], [2, 0, 1]],}
+                            1: [[0, 2, 1], [0, 2, 1], [0, 2, 1]], 
+                            2: [[1, 0, 2], [1, 0, 2], [1, 0, 2]], 
+                            3: [[0, 2, 1], [1, 0, 2], [2, 0, 1]], 
+                            4: [[0, 2, 1], [1, 0, 2], [2, 0, 1]],
+                            5: [[0, 2, 1], [1, 0, 2], [2, 0, 1]],
+                            6: [[0, 2, 1], [1, 0, 2], [2, 0, 1]],}
         
         self.OMEGA = [1, 2, 0]  # meta ordering over contexts c1 > c2 > c0
         
@@ -24,20 +24,20 @@ class WarehouseEnvironment:
         self.columns = columns
         goal_loc = np.where(All_States == 'G')
         self.goal_location = (goal_loc[0][0], goal_loc[1][0])
-        # s = (s[0]: x, s[1]: y, s[2]: package_status, s[3]: slippery_tile, s[4]: narrow_corridor)
-        self.s_goal = (self.goal_location[0], self.goal_location[1], 'D', False, False)
+        # s: <s[0]: x, s[1]: y, s[2]: passenger_status, s[3]: pothole, s[4]: road_type>
+        self.s_goal = (self.goal_location[0], self.goal_location[1], 'D', False, 'R')
         
         # Initialize parameters for the CLMDP
         self.S = self.get_state_space()
         self.objectives = [i for i in context_ordering[context_sim][0]]
         # removing duplicates in self.objectives
         self.objectives = list(set(self.objectives))
-        self.objective_names = {0: 'Package Task', 1: 'Avoid Slip', 2: 'Navigate Narrow Corridor'}
+        self.objective_names = {0: 'Passenger Drop-off', 1: 'Use Autonomy-Enabled Tracks', 2: 'Avoid Pothole Discomfort'}
         self.Contexts = list(range(len(context_ordering[context_sim])))
         self.contextual_orderings = context_ordering[context_sim]  # list of contextual orderings each a list of objectives
         self.Reward_for_obj = self.get_reward_functions()  # list of reward functions for each objective
         self.context_names = self.get_context_name(self.Contexts)
-        self.context_map =  MR.get_context_map(self.S, self.Contexts, 'warehouse')
+        self.context_map =  MR.get_context_map(self.S, self.Contexts, 'taxi')
         self.state2context_map = self.context_map
         self.context2state_map = {}
         # print("Context: ", self.Contexts)
@@ -48,11 +48,14 @@ class WarehouseEnvironment:
 
     def get_state_space(self):
         S = []
-        # s = (s[0]: x, s[1]: y, s[2]: package_status, s[3]: slippery_tile, s[4]: narrow_corridor)
+        # s: <s[0]: x, s[1]: y, s[2]: passenger_status, s[3]: pothole, s[4]: road_type>
         for i in range(self.rows):
             for j in range(self.columns):
-                for package_status in ['X','P','D']:
-                    S.append((i, j, package_status, self.All_States[i][j]=='S', self.All_States[i][j]=='#'))
+                for passenger_status in ['X','P','D']:
+                    if self.All_States[i][j] in ['P', 'R', 'G', 'B']:
+                        S.append((i, j, passenger_status, self.All_States[i][j]=='P', 'R'))
+                    elif self.All_States[i][j] == 'A':
+                        S.append((i, j, passenger_status, False, 'A'))  # No pothole on autonomy-enabled track
         return S
 
     def get_reward_functions(self):
@@ -60,10 +63,9 @@ class WarehouseEnvironment:
         return R
 
     def R1(self, s, a):
-        # box delivery reward
-        # s = (s[0]: x, s[1]: y, s[2]: package_status, s[3]: slippery_tile, s[4]: narrow_corridor)
+        # Passengar Drop-off reward
+        # s: <s[0]: x, s[1]: y, s[2]: passenger_status, s[3]: pothole, s[4]: road_type>
         s_next = self.step(s, a)
-        # print("s_next: ", s_next)
         if s_next == self.s_goal and a != 'Noop':
             return 100
         elif s_next == self.s_goal and a == 'Noop':
@@ -72,25 +74,21 @@ class WarehouseEnvironment:
             return -1
     
     def R2(self, s, a):
-        # slippery tile NSE mitigation reward (penalty)
-        weighting = {'X': 0, 'P': 20, 'D': 0}
-        nse_penalty = 0
+        # Penalty for not being on autonomy-enabled track s[4] \in {'A', 'R'}
         # operation actions = ['Noop', 'pick', 'drop', 'U', 'D', 'L', 'R']
-        # s = (s[0]: x, s[1]: y, s[2]: package_status, s[3]: slippery_tile, s[4]: narrow_corridor)
+        # s: <s[0]: x, s[1]: y, s[2]: passenger_status, s[3]: pothole, s[4]: road_type>
         s_next = self.step(s, a)
-        # print("s_next: ", s_next)
-        if s_next[3] is True:
-            nse_penalty = - weighting[s_next[2]]
+        if s_next[4] == 'R':  # if the agent is on the normal road
+            R = -1
         else:
-            nse_penalty = 0
-        return nse_penalty
+            R = 0
+        return R
     
     def R3(self, s, a):
-        # Narrow corridor inconvenience draining (penalty)
-        # s = (s[0]: x, s[1]: y, s[2]: package_status, s[3]: slippery_tile, s[4]: narrow_corridor)
-        s_next = self.step(s, a)  
-        # print("s_next: ", s_next)      
-        if s_next[4] is True:
+        # Pothole discomfort penalty
+        # s: <s[0]: x, s[1]: y, s[2]: passenger_status, s[3]: pothole, s[4]: road_type>
+        s_next = self.step(s, a)        
+        if s[2] == 'P' and s_next[3] is True:
             R = -10
         else:
             R = 0
@@ -111,7 +109,7 @@ class WarehouseEnvironment:
         return self.contextual_orderings[context]
     
     def step(self, s, a):
-        # s = (s[0]: x, s[1]: y, s[2]: package_status, s[3]: slippery_tile, s[4]: narrow_corridor)
+        # s: <s[0]: x, s[1]: y, s[2]: passenger_status, s[3]: pothole, s[4]: road_type>
         # operation actions = ['Noop','pick', 'drop', 'U', 'D', 'L', 'R']
         s = list(s)
         if a == 'pick':
@@ -132,29 +130,41 @@ class WarehouseEnvironment:
         return s
     
     def move_correctly(self, s, a):
+        # s: <s[0]: x, s[1]: y, s[2]: passenger_status, s[3]: pothole, s[4]: road_type>
         # action = {'U': 0, 'R': 1, 'D': 2, 'L': 3}
-        # s = (s[0]: x, s[1]: y, s[2]: package_status, s[3]: slippery_tile, s[4]: narrow_corridor)
         s_next = 0
         if a == 'U':
             if s[0] == 0:
                 s_next = s
             else:
-                s_next = (s[0] - 1, s[1], s[2], self.All_States[s[0] - 1][s[1]] == 'S', self.All_States[s[0] - 1][s[1]] == '#')
+                if self.All_States[s[0] - 1][s[1]] in ['P', 'R', 'G', 'B']:
+                    s_next = (s[0] - 1, s[1], s[2], self.All_States[s[0] - 1][s[1]] == 'P', 'R')
+                else:
+                    s_next = (s[0] - 1, s[1], s[2], False, 'A')
         elif a == 'D':
             if s[0] == self.rows - 1:
                 s_next = s
             else:
-                s_next = (s[0] + 1, s[1], s[2], self.All_States[s[0] + 1][s[1]] == 'S', self.All_States[s[0] + 1][s[1]] == '#')
+                if self.All_States[s[0] + 1][s[1]] in ['P', 'R', 'G', 'B']:
+                    s_next = (s[0] + 1, s[1], s[2], self.All_States[s[0] + 1][s[1]] == 'P', 'R')
+                else:
+                    s_next = (s[0] + 1, s[1], s[2], False, 'A')
         elif a == 'L':
             if s[1] == 0:
                 s_next = s
             else:
-                s_next = (s[0], s[1] - 1, s[2], self.All_States[s[0]][s[1] - 1] == 'S', self.All_States[s[0]][s[1] - 1] == '#')
+                if self.All_States[s[0]][s[1] - 1] in ['P', 'R', 'G', 'B']:
+                    s_next = (s[0], s[1] - 1, s[2], self.All_States[s[0]][s[1] - 1] == 'P', 'R')
+                else:
+                    s_next = (s[0], s[1] - 1, s[2], False, 'A')
         elif a == 'R':
             if s[1] == self.columns - 1:
                 s_next = s
             else:
-                s_next = (s[0], s[1] + 1, s[2], self.All_States[s[0]][s[1] + 1] == 'S', self.All_States[s[0]][s[1] + 1] == '#')
+                if self.All_States[s[0]][s[1] + 1] in ['P', 'R', 'G', 'B']:
+                    s_next = (s[0], s[1] + 1, s[2], self.All_States[s[0]][s[1] + 1] == 'P', 'R')
+                else:
+                    s_next = (s[0], s[1] + 1, s[2], False, 'A')
         return s_next
     
     def check_context(self, s):
@@ -172,10 +182,10 @@ class WarehouseEnvironment:
             context_names[context] = context_name
         return context_names
     
-class WarehouseAgent:
+class TaxiAgent:
     def __init__(self, Grid, start_location=(0,0), label='1'):
         
-        # Initialize the agent with environment, package, start location, and label (to identify incase of multi-agent scenario)
+        # Initialize the agent with environment, passenger, start location, and label (to identify incase of multi-agent scenario)
         self.Grid = Grid
         self.start_location = start_location
         self.label = label
@@ -186,10 +196,10 @@ class WarehouseAgent:
         self.p_success = 0.8
         
         # set the start state and the goal state in the right format:
-        # s = (s[0]: x, s[1]: y, s[2]: package_status, s[3]: slippery_tile, s[4]: narrow_corridor)
-        self.s0 = (start_location[0], start_location[1], 'X', Grid.All_States[start_location[0]][start_location[1]]=='S', Grid.All_States[start_location[0]][start_location[1]]=='#')
+        # s: <s[0]: x, s[1]: y, s[2]: passenger_status, s[3]: pothole, s[4]: road_type>
+        self.s0 = (start_location[0], start_location[1], 'X', False, 'R')
         self.s = copy.deepcopy(self.s0)
-        self.s_goal = (self.goal_loc[0], self.goal_loc[1], 'D', False, False)
+        self.s_goal = (self.goal_loc[0], self.goal_loc[1], 'D', False, 'R')
         
         # Initialize state and action space
         self.S = Grid.S
@@ -218,9 +228,9 @@ class WarehouseAgent:
         self.path = str(self.s)  # + "->"
         self.plan = ""
         self.trajectory = []
-            
+        
     def step(self, s, a):
-        # s = (s[0]: x, s[1]: y, s[2]: package_status, s[3]: slippery_tile, s[4]: narrow_corridor)
+        # s: <s[0]: x, s[1]: y, s[2]: passenger_status, s[3]: pothole, s[4]: road_type>
         # operation actions = ['Noop','pick', 'drop', 'U', 'D', 'L', 'R']
         s = list(s)
         if a == 'pick':
@@ -303,15 +313,15 @@ class WarehouseAgent:
         self.trajectory.append((self.s, Pi[self.s], None))
                     
     def get_action_space(self):
-        # Get the action space for warehouse agent
+        # Get the action space for taxi agent
         A = {}
         S = self.Grid.S
         for s in S:
             A[s] = ['Noop', 'pick', 'drop', 'U', 'D', 'L', 'R']
             A[s] = ['pick', 'drop', 'U', 'D', 'L', 'R']
         # Remove actions that are not possible in certain states
-        # s = (s[0]: x, s[1]: y, s[2]: package_status, s[3]: slippery_tile, s[4]: narrow_corridor)
-        # package_status = {'X': no package, 'P': package with agent, 'D': package delivered}
+        # s: <s[0]: x, s[1]: y, s[2]: passenger_status, s[3]: pothole, s[4]: road_type>
+        # passenger_status = {'X': passenger waiting, 'P': paggenger picked-up, 'D': passenger dropped-off}
         for s in S:
             if s[2] != 'X':
                 if 'pick' in A[s]:
@@ -331,7 +341,7 @@ class WarehouseAgent:
         return A
 
     def get_transition_prob(self, s, a):
-        # s = (s[0]: x, s[1]: y, s[2]: package_status, s[3]: slippery_tile, s[4]: narrow_corridor)
+        # s: <s[0]: x, s[1]: y, s[2]: passenger_status, s[3]: pothole, s[4]: road_type>
         # operation actions = ['Noop', 'pick', 'drop', 'U', 'D', 'L', 'R']
         p_success = copy.copy(self.p_success)
         p_fail = 1 - p_success
@@ -340,9 +350,9 @@ class WarehouseAgent:
         if s == self.s_goal or a == 'Noop':
             T = {s: 1}  # stay at the goal with prob = 1
         elif a == 'U' or a == 'D' or a == 'L' or a == 'R':
-            s_next_correct = self.move_correctly(self.Grid, s, a)
-            s_next_slide_left = self.move_correctly(self.Grid, s, action[(action_key[a] - 1) % 4])
-            s_next_slide_right = self.move_correctly(self.Grid, s, action[(action_key[a] + 1) % 4])
+            s_next_correct = self.move_correctly(s, a)
+            s_next_slide_left = self.move_correctly(s, action[(action_key[a] - 1) % 4])
+            s_next_slide_right = self.move_correctly(s, action[(action_key[a] + 1) % 4])
             if s_next_correct == s_next_slide_left:
                 T = {s_next_correct: round(p_success + p_fail / 2, 3), s_next_slide_right: round(p_fail / 2, 3)}
             elif s_next_correct == s_next_slide_right:
@@ -355,35 +365,48 @@ class WarehouseAgent:
             T = {self.step(s, a): 1}  # (same: 0.2, next: 0.8)
         # create conlficting transitions by removing stochastic slides for certain states manually 
         # but not changing the optimal policy
-        if s == (3, 2, 'P', True, False) and (a == 'U' or a == 'D' or a == 'L' or a == 'R'):
-            T = {self.move_correctly(self.Grid, s, a): 1}
-        if s == (3, 1, 'P', False, False) and (a == 'U' or a == 'D' or a == 'L' or a == 'R'):
-            T = {self.move_correctly(self.Grid, s, a): 1}
+        if s == (1, 4, 'P', False, 'A') and (a == 'U' or a == 'D' or a == 'L' or a == 'R'):
+            T = {self.move_correctly(s, a): 1}
+        if s == (2, 4, 'P', False, 'A') and (a == 'U' or a == 'D' or a == 'L' or a == 'R'):
+            T = {self.move_correctly(s, a): 1}
         return T
 
-    def move_correctly(self, Grid, s, a):
+    def move_correctly(self, s, a):
+        # s: <s[0]: x, s[1]: y, s[2]: passenger_status, s[3]: pothole, s[4]: road_type>
         # action = {'U': 0, 'R': 1, 'D': 2, 'L': 3}
-        # s_next = 0
+        s_next = 0
         if a == 'U':
             if s[0] == 0:
                 s_next = s
             else:
-                s_next = (s[0] - 1, s[1], s[2], Grid.All_States[s[0] - 1][s[1]] == 'S', Grid.All_States[s[0] - 1][s[1]] == '#') 
+                if self.Grid.All_States[s[0] - 1][s[1]] in ['P', 'R', 'G', 'B']:
+                    s_next = (s[0] - 1, s[1], s[2], self.Grid.All_States[s[0] - 1][s[1]] == 'P', 'R')
+                else:
+                    s_next = (s[0] - 1, s[1], s[2], False, 'A')
         elif a == 'D':
-            if s[0] == Grid.rows - 1:
+            if s[0] == self.Grid.rows - 1:
                 s_next = s
             else:
-                s_next = (s[0] + 1, s[1], s[2], Grid.All_States[s[0] + 1][s[1]] == 'S', Grid.All_States[s[0] + 1][s[1]] == '#')
+                if self.Grid.All_States[s[0] + 1][s[1]] in ['P', 'R', 'G', 'B']:
+                    s_next = (s[0] + 1, s[1], s[2], self.Grid.All_States[s[0] + 1][s[1]] == 'P', 'R')
+                else:
+                    s_next = (s[0] + 1, s[1], s[2], False, 'A')
         elif a == 'L':
             if s[1] == 0:
                 s_next = s
             else:
-                s_next = (s[0], s[1] - 1, s[2], Grid.All_States[s[0]][s[1] - 1] == 'S', Grid.All_States[s[0]][s[1] - 1] == '#')
+                if self.Grid.All_States[s[0]][s[1] - 1] in ['P', 'R', 'G', 'B']:
+                    s_next = (s[0], s[1] - 1, s[2], self.Grid.All_States[s[0]][s[1] - 1] == 'P', 'R')
+                else:
+                    s_next = (s[0], s[1] - 1, s[2], False, 'A')
         elif a == 'R':
-            if s[1] == Grid.columns - 1:
+            if s[1] == self.Grid.columns - 1:
                 s_next = s
             else:
-                s_next = (s[0], s[1] + 1, s[2], Grid.All_States[s[0]][s[1] + 1] == 'S', Grid.All_States[s[0]][s[1] + 1] == '#')
+                if self.Grid.All_States[s[0]][s[1] + 1] in ['P', 'R', 'G', 'B']:
+                    s_next = (s[0], s[1] + 1, s[2], self.Grid.All_States[s[0]][s[1] + 1] == 'P', 'R')
+                else:
+                    s_next = (s[0], s[1] + 1, s[2], False, 'A')
         return s_next
 
     def get_normalization(self, R):

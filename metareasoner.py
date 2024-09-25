@@ -10,21 +10,31 @@ def get_context_map(S, Contexts, domain_name):
             # context_map[s] = None  # ICP by Yash
             # s = (s[0]: x, s[1]: y, s[2]: sample_with_agent, s[3]: coral_flag, s[4]: eddy, s[5]: done_flag)
             if s[2] == 'P' and s[3] is True:
-                context_map[s] = 1 # Context 1 - Prioritize coral NSE escape
+                context_map[s] = 1  # Context 2 - Prioritize coral NSE escape
             elif s[4] is True:
-                context_map[s] = 2 # Context 2 - Prioritize Eddy escape
+                context_map[s] = 2  # Context 3 - Prioritize Eddy escape
             else:
-                context_map[s] = 0 # Context 3 - Prioritize Task
+                context_map[s] = 0  # Context 1 - Prioritize Task
     elif domain_name == 'warehouse':
         for s in S:
             # context_map[s] = None  # ICP by Yash
             # s = (s[0]: x, s[1]: y, s[2]: package_status, s[3]: slippery_tile, s[4]: narrow_corridor)
             if s[2] == 'P' and s[3] is True:
-                context_map[s] = 1 # Context 1 - Prioritize slippery tile NSE escape
+                context_map[s] = 1  # Context 2 - Prioritize slippery tile NSE escape
             elif s[4] is True:
-                context_map[s] = 2 # Context 2 - Prioritize moving out of narrow corridor
+                context_map[s] = 2  # Context 3 - Prioritize moving out of narrow corridor
             else:
-                context_map[s] = 0 # Context 3 - Prioritize package delivery Task
+                context_map[s] = 0  # Context 1 - Prioritize package delivery Task
+    elif domain_name == 'taxi':
+        for s in S:
+            # context_map[s] = None  # ICP by Yash
+            # s: (s[0]: x, s[1]: y, s[2]: passenger_status, s[3]: pothole, s[4]: road_type)
+            if s[4] == 'A':
+                context_map[s] = 1  # Context 2 - Prioritize autonomy-enabled road
+            elif s[2] == 'P' and s[3] is True:
+                context_map[s] = 2  # Context 3 - Prioritize pothole NSE escape when passenger is present
+            else:
+                context_map[s] = 0  # Context 1 - Prioritize passenger pickup/dropoff Task
     return context_map
 
 def conflict_checker(Pi, agent):

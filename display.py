@@ -101,10 +101,10 @@ def get_frame_salp(agent, grid, idx, state=None, savename='animation'):
     # Set the axis limits and hide the axes
     ax.set_xlim(0, ncols)
     ax.set_ylim(0, nrows)
-    print('state: ', state, 'action: ', agent.Pi_G[state])
-    print('\tR1: ', agent.Grid.R1(state, agent.Pi_G[state]))
-    print('\tR2: ', agent.Grid.R2(state, agent.Pi_G[state]))
-    print('\tR3: ', agent.Grid.R3(state, agent.Pi_G[state]))
+    # print('state: ', state, 'action: ', agent.Pi_G[state])
+    # print('\tR1: ', agent.Grid.R1(state, agent.Pi_G[state]))
+    # print('\tR2: ', agent.Grid.R2(state, agent.Pi_G[state]))
+    # print('\tR3: ', agent.Grid.R3(state, agent.Pi_G[state]))
     print()
     ax.title.set_text(savename + "\n" +
                   r"$R_1 = $" + f"{agent.r_1:3d}" + "\t" +
@@ -234,11 +234,11 @@ def get_frame_warehouse(agent, grid, idx, state=None, savename='animation'):
     # Set the axis limits and hide the axes
     ax.set_xlim(0, ncols)
     ax.set_ylim(0, nrows)
-    print('state: ', state, 'action: ', agent.Pi_G[state])
-    print('\tR1: ', agent.Grid.R1(state, agent.Pi_G[state]))
-    print('\tR2: ', agent.Grid.R2(state, agent.Pi_G[state]))
-    print('\tR3: ', agent.Grid.R3(state, agent.Pi_G[state]))
-    print()
+    # print('state: ', state, 'action: ', agent.Pi_G[state])
+    # print('\tR1: ', agent.Grid.R1(state, agent.Pi_G[state]))
+    # print('\tR2: ', agent.Grid.R2(state, agent.Pi_G[state]))
+    # print('\tR3: ', agent.Grid.R3(state, agent.Pi_G[state]))
+    # print()
     ax.title.set_text(savename + "\n" +
                   r"$R_1 = $" + f"{agent.r_1:3d}" + "\t" +
                   r"$R_2 = $" + f"{agent.r_2:3d}" + "\t" +
@@ -295,5 +295,132 @@ def get_next_all_state_warehouse(s, Grid, location_tracker):
     elif new_all_state[i][j] == '7' and location_tracker[-1][0] == i and location_tracker[-1][1] == j and location_tracker[-2][1] == j+1:
         new_all_state[i][j] = '@'
     
+    location_tracker.append((i, j))
+    return new_all_state, location_tracker
+
+
+    
+############  Animation for taxi domain  ############
+
+def animate_policy_taxi(agent, Pi, savename='animation', stochastic_transition=True):
+    '''Animates the agent following the given policy.'''
+    agent.reset()
+    if stochastic_transition:
+        agent.follow_policy_rollout(Pi)
+    else: 
+        agent.follow_policy(Pi)
+    if agent.trajectory is None:
+        print('Agent has not followed any policy yet!')
+        return
+    state_list = []
+    frames = []
+    for tau in agent.trajectory:
+        s, a, r = tau
+        state_list.append(s)
+    location_tracker = []
+    for idx, s in enumerate(state_list):
+        next_all_state, location_tracker = get_next_all_state_taxi(s, agent.Grid, location_tracker)
+        get_frame_taxi(agent, next_all_state, idx, s, savename)   
+        frames.append('animation/{}.png'.format(idx))
+    display_animation(frames, savename,fps=1.5)
+    # delete all images
+    for idx in range(len(state_list)):
+        path = 'animation/{}.png'.format(idx)
+        os.remove(path)
+    
+def get_frame_taxi(agent, grid, idx, state=None, savename='animation'):
+    # Load the icons
+    icon_paths = {
+        'P': 'images/taxi/pothole.png',
+        'R': 'images/taxi/road.png',
+        'G': 'images/taxi/goal.png',
+        'B': 'images/taxi/passenger.png',
+        'b': 'images/taxi/empty_passenger_spot.png',
+        'A': 'images/taxi/autonomous_road.png',
+        '1': 'images/taxi/taxi.png',
+        '2': 'images/taxi/taxi_with_passenger.png',
+        '3': 'images/taxi/taxi_with_passenger_on_pothole.png',
+        '4': 'images/taxi/taxi_with_passenger_on_autonomous.png',
+        '5': 'images/taxi/taxi_with_passenger_at_pickup.png',
+        '6': 'images/taxi/taxi_with_passenger_at_goal.png',
+        '7': 'images/taxi/taxi_on_pothole.png',
+        '8': 'images/taxi/taxi_on_autonomous.png',
+        '9': 'images/taxi/taxi_and_passenger_at_pickup.png',
+        '0': 'images/taxi/taxi_and_passenger_at_goal.png',
+        
+    }
+
+    icons = {key: np.flipud(mpimg.imread(path)) for key, path in icon_paths.items()}
+
+    # Determine the size of the grid
+    nrows, ncols = len(grid), len(grid[0])
+
+    # Create a figure and axis
+    fig, ax = plt.subplots(figsize=(ncols, nrows))
+    # ax.clear()
+
+    # Plot the icons on the grid
+    for i in range(nrows):
+        for j in range(ncols):
+            if grid[i][j] in icons:
+                icon = icons[grid[i][j]]
+                rect = plt.Rectangle([j, i], 1, 1, facecolor='none', edgecolor='none')
+                ax.add_patch(rect)
+                ax.imshow(icon, extent=[j, j + 1, i, i + 1], aspect='auto')
+            else:
+                rect = plt.Rectangle([j, i], 1, 1, facecolor='white', edgecolor='black')
+                ax.add_patch(rect)
+
+    # Set the axis limits and hide the axes
+    ax.set_xlim(0, ncols)
+    ax.set_ylim(0, nrows)
+    # print('state: ', state, 'action: ', agent.Pi_G[state])
+    # print('\tR1: ', agent.Grid.R1(state, agent.Pi_G[state]))
+    # print('\tR2: ', agent.Grid.R2(state, agent.Pi_G[state]))
+    # print('\tR3: ', agent.Grid.R3(state, agent.Pi_G[state]))
+    # print()
+    ax.title.set_text(savename + "\n" +
+                  r"$R_1 = $" + f"{agent.r_1:3d}" + "\t" +
+                  r"$R_2 = $" + f"{agent.r_2:3d}" + "\t" +
+                  r"$R_3 = $" + f"{agent.r_3:3d}")
+    agent.r_1 += agent.Grid.R1(state, agent.Pi_G[state])
+    agent.r_2 += agent.Grid.R2(state, agent.Pi_G[state])
+    agent.r_3 += agent.Grid.R3(state, agent.Pi_G[state])
+    ax.invert_yaxis()
+    ax.axis('off')
+    
+    # save plot as image
+    plt.savefig('animation/{}.png'.format(idx))
+    plt.close()
+
+
+def get_next_all_state_taxi(s, Grid, location_tracker):
+    # s = (s[0]: x, s[1]: y, s[2]: passenger_status, s[3]: pothole, s[4]: road_type)
+    new_all_state = copy.deepcopy(Grid.All_States)
+    i, j, passenger_status, pothole, road_type = s
+    if passenger_status == 'X' and not pothole and road_type == 'R' and Grid.All_States[i][j] not in ['B', 'G']:
+        new_all_state[i][j] = '1'
+    elif passenger_status == 'P' and not pothole and road_type == 'R' and Grid.All_States[i][j] not in ['B', 'G']:
+        new_all_state[i][j] = '2'
+    elif passenger_status == 'P' and pothole and road_type == 'R':
+        new_all_state[i][j] = '3'
+    elif passenger_status == 'P' and not pothole and road_type == 'A':
+        new_all_state[i][j] = '4'
+    elif passenger_status == 'P' and not pothole and road_type == 'R' and Grid.All_States[i][j] == 'B':
+        new_all_state[i][j] = '5'
+    elif passenger_status == 'P' and not pothole and road_type == 'R' and Grid.All_States[i][j] == 'G':
+        new_all_state[i][j] = '6'
+    elif passenger_status == 'X' and pothole and road_type == 'R' and Grid.All_States[i][j] == 'P':
+        new_all_state[i][j] = '7'
+    elif passenger_status == 'X' and not pothole and road_type == 'A':
+        new_all_state[i][j] = '8'
+    elif passenger_status == 'X' and not pothole and road_type == 'R' and Grid.All_States[i][j] == 'B':
+        new_all_state[i][j] = '9'
+    elif passenger_status == 'D' and not pothole and road_type == 'R' and Grid.All_States[i][j] == 'G':
+        new_all_state[i][j] = '0'
+    for loc in location_tracker:
+        i_prev, j_prev = loc
+        if new_all_state[i_prev][j_prev] == 'B':
+            new_all_state[i_prev][j_prev] = 'b'    
     location_tracker.append((i, j))
     return new_all_state, location_tracker

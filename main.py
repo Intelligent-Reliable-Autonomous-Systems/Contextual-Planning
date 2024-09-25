@@ -5,7 +5,7 @@ import oracle_policy
 import metareasoner as MR
 from timeit import default_timer as timer
 
-domain = 'warehouse' # options - ['salp', 'warehouse']
+domain = 'taxi' # options - ['salp', 'warehouse', 'taxi']
 context_sim = 1 # options - [0, 1, 2, 3, 4, 5, 6]
 
 for context_sim in range(6):
@@ -17,6 +17,13 @@ for context_sim in range(6):
         from warehouse_mdp import WarehouseEnvironment, WarehouseAgent
         Env = WarehouseEnvironment("grids/warehouse/illustration.txt", context_sim)
         agent = WarehouseAgent(Env)
+    elif domain == 'taxi':
+        from taxi_mdp import TaxiEnvironment, TaxiAgent
+        Env = TaxiEnvironment("grids/taxi/illustration.txt", context_sim)
+        agent = TaxiAgent(Env)
+    else:
+        print(simple_colors.red('Invalid domain name!', ['bold']))
+        break
     savenames = {0: 'Task only',
                 1: 'Task > NSE Mitigation', 
                 2: 'NSE Mitigation > Task', 
@@ -45,4 +52,6 @@ for context_sim in range(6):
         display.animate_policy_salp(agent, Pi_G, savenames[context_sim], stochastic_transition=False)#, savenames[context_sim]) 
     elif domain == 'warehouse':
         display.animate_policy_warehouse(agent, Pi_G, savenames[context_sim], stochastic_transition=False)#, savenames[context_sim]) 
+    elif domain == 'taxi':
+        display.animate_policy_taxi(agent, Pi_G, savenames[context_sim], stochastic_transition=False)#, savenames[context_sim]) 
     wait = input("Press Enter to continue...")

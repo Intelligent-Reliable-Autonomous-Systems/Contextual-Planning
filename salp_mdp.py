@@ -62,8 +62,10 @@ class SalpEnvironment:
         # sample delivery reward
         # state of an agent: <s[0]: x, s[1]: y, s[2]: sample_status, s[3]: coral_flag, s[4]: eddy_flag>
         s_next = self.step(s, a)
-        if s_next == self.s_goal:
+        if s_next == self.s_goal and a != 'Noop':
             return 100
+        elif s_next == self.s_goal and a == 'Noop':
+            return 0
         else:
             return -1
     
@@ -117,10 +119,7 @@ class SalpEnvironment:
             else:
                 s[2] = s[2]
         elif a == 'U' or a == 'D' or a == 'L' or a == 'R':
-            # s is the states with the maximum probability
-            T = self.get_transition_prob(tuple(s), a)
-            s = max(T, key=T.get)
-            # s = self.sample_state(tuple(s), a)
+            s = self.move_correctly(s, a)
         elif a == 'Noop':
             s = s
         else:
@@ -204,9 +203,12 @@ class SalpAgent:
         self.Pi = {}
         self.Pi_G = {}  # Global synthesized policy
         self.PI = {}  # policy from all contexts in a dictionary mapping context to policy
+        self.r_1 = 0
+        self.r_2 = 0
+        self.r_3 = 0
         for context in Grid.Contexts:
             self.PI[context] = {}
-        
+
         # variables to track the agent path and trahectory for debuging purposes
         self.path = str(self.s)  # + "->"
         self.plan = ""
