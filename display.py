@@ -85,7 +85,6 @@ def get_frame_salp(agent, grid, idx, state=None, savename='animation'):
     # Create a figure and axis
     fig, ax = plt.subplots(figsize=(ncols, nrows))
     # ax.clear()
-    custom_color = (211/255, 218/255, 229/255)
     # Plot the icons on the grid
     for i in range(nrows):
         for j in range(ncols):
@@ -105,7 +104,7 @@ def get_frame_salp(agent, grid, idx, state=None, savename='animation'):
     # print('\tR1: ', agent.Grid.R1(state, agent.Pi_G[state]))
     # print('\tR2: ', agent.Grid.R2(state, agent.Pi_G[state]))
     # print('\tR3: ', agent.Grid.R3(state, agent.Pi_G[state]))
-    print()
+    # print()
     ax.title.set_text(savename + "\n" +
                   r"$R_1 = $" + f"{agent.r_1:3d}" + "\t" +
                   r"$R_2 = $" + f"{agent.r_2:3d}" + "\t" +
@@ -113,7 +112,7 @@ def get_frame_salp(agent, grid, idx, state=None, savename='animation'):
     agent.r_1 += agent.Grid.R1(state, agent.Pi_G[state])
     agent.r_2 += agent.Grid.R2(state, agent.Pi_G[state])
     agent.r_3 += agent.Grid.R3(state, agent.Pi_G[state])
-    ax.title.set_text(savename)
+    # ax.title.set_text(savename)
     # ax.title.set_text('state: ' + str(state))
     ax.invert_yaxis()
     ax.axis('off')

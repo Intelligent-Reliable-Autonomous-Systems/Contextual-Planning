@@ -5,10 +5,9 @@ import oracle_policy
 import metareasoner as MR
 from timeit import default_timer as timer
 
-domain = 'warehouse' # options - ['salp', 'warehouse', 'taxi']
-# context_sim = 1 # options - [0, 1, 2, 3, 4, 5, 6]
+domain = 'salp' # options - ['salp', 'warehouse', 'taxi']
 
-for context_sim in range(7):
+for context_sim in range(8):
     if domain == 'salp':
         from salp_mdp import SalpEnvironment, SalpAgent
         Env = SalpEnvironment("grids/salp/illustration_eddy.txt", context_sim)
@@ -29,19 +28,22 @@ for context_sim in range(7):
                 2: 'NSE Mitigation > Task', 
                 3: 'Scalarization Single Preference',
                 4: 'Scalarization Contextual Preferences',
-                5: 'Contextual Approach without Conflict Resolution', 
-                6: 'Contextual Approach with Conflict Resolution'}
+                5: 'Contextual Scalarization DNN', 
+                6: 'Contextual Approach without Conflict Resolution',
+                7: 'Contextual Approach with Conflict Resolution'}
 
     print(simple_colors.cyan('Context Simulation: ' + savenames[context_sim], ['bold', 'underlined']))
     if context_sim in [3, 4]:
         agent, Pi_G = value_iteration.contextual_scalarized_value_iteration(agent)
+    elif context_sim == 5:
+        agent, Pi_G = agent.get_contextual_scalarized_dnn_policy()
     else:
         agent, Pi_G = value_iteration.contextual_lexicographic_value_iteration(agent)
     agent.Pi_G = Pi_G
     conflict = MR.conflict_checker(Pi_G, agent)
     if conflict: print(simple_colors.red('Conflict Detected!', ['bold']) )
     else: print(simple_colors.green('No Conflicts', ['bold']))
-    if context_sim == 6:
+    if context_sim == 7:
         Pi_G = MR.conflict_resolver(Pi_G, agent)
         conflict = MR.conflict_checker(Pi_G, agent)
         if conflict: print(simple_colors.red('Conflict Detected!', ['bold']) )

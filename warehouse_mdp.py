@@ -2,7 +2,11 @@ import copy
 import random
 import numpy as np
 import read_grid
+import value_iteration
 import metareasoner as MR
+import tensorflow as tf
+from keras import layers, models
+
 
 class WarehouseEnvironment:
     def __init__(self, filename, context_sim):
@@ -13,7 +17,8 @@ class WarehouseEnvironment:
                             3: [[0, 1, 2], [0, 1, 2], [0, 1, 2]], 
                             4: [[0, 1, 2], [1, 0, 2], [2, 0, 1]], 
                             5: [[0, 1, 2], [1, 0, 2], [2, 0, 1]],
-                            6: [[0, 1, 2], [1, 0, 2], [2, 0, 1]],}
+                            6: [[0, 1, 2], [1, 0, 2], [2, 0, 1]],
+                            7: [[0, 1, 2], [1, 0, 2], [2, 0, 1]],}
         
         self.OMEGA = [1, 2, 0]  # meta ordering over contexts c1 > c2 > c0
         
@@ -199,9 +204,6 @@ class WarehouseAgent:
         
         # Set the scalarization weights for the context objectives (assuming 3 objectives in each context)
         self.scalarization_weights = [0.5, 0.3, 0.2]
-        self.R_norm = []
-        for R in Grid.Reward_for_obj:
-            self.R_norm.append(self.get_normalization(R))
         
         # Initialize Value function and Policies
         self.V = {}
@@ -385,11 +387,87 @@ class WarehouseAgent:
             else:
                 s_next = (s[0], s[1] + 1, s[2], Grid.All_States[s[0]][s[1] + 1] == 'S', Grid.All_States[s[0]][s[1] + 1] == '#')
         return s_next
+    
+    def get_contextual_scalarized_dnn_policy(self):
+        w = [0.5, 0.3, 0.2]
+        # CCS orderings for
+        O = [[0, 1, 2], [1, 0, 2], [2, 0, 1], [0, 2, 1], [1, 2, 0], [2, 1, 0]]
+        X = []
+        Y = []
+        for o in O:
+            input_weights = [w[[obj_idx for obj_idx in range(len(o)) if o[obj_idx]==i][0]] for i in range(len(o))]
+            _, Pi_for_this_ordering = value_iteration.scalarized_value_iteration(self, o)
+            x = [np.array(self.preprocess_input_state(s) + input_weights) for s in self.S]
+            X += x
+            y = [np.array(self.preprocess_output(Pi_for_this_ordering[s])) for s in self.S]
+            Y += y
+        X = np.array(X)
+        Y = np.array(Y)
+        input_dim = X.shape[1]
+        model = self.build_model(input_dim)
+        batch_size = len(self.S)
+        epochs = 1000
+        print("Starting to train the DNN model.")
+        model.fit(X, Y, epochs=epochs, batch_size=batch_size)
+        print("DNN training completed.")
+        print("Compiling policy...")
+        Pi_G = {}
+        for s in self.S:
+            ordering = self.Grid.f_w(self.Grid.state2context_map[s])
+            weights = [w[[obj_idx for obj_idx in range(len(ordering)) if ordering[obj_idx]==i][0]] for i in range(len(ordering))]
+            x = np.array(self.preprocess_input_state(s) + weights)
+            x = x.reshape(1, -1)
+            y = model.predict(x)
+            Pi_G[s] = self.postprocess_output(y)
+        print("Policy compiled.")
+        return self, Pi_G
+                
+    def preprocess_output(self, action):
+        ''''Return the one-hot encoded output for the given action'''
+        # Define the action vocabulary
+        action_vocab = ['Noop', 'pick', 'drop', 'U', 'D', 'L', 'R']
+        # One-hot encode the action
+        action_encoded = [1 if action == a else 0 for a in action_vocab]
+        return action_encoded
 
-    def get_normalization(self, R):
-        '''Return the normalization factor for the reward function'''
-        R_max = 0
-        for s in self.Grid.S:
-            for a in self.A[s]:
-                R_max = max(R_max, abs(R(s, a)))
-        return R_max
+    def postprocess_output(self, action_encoded):
+        '''Return the action for the given one-hot encoded output'''
+        action_vocab = ['Noop', 'pick', 'drop', 'U', 'D', 'L', 'R']
+        action = action_vocab[np.argmax(action_encoded)]
+        return action
+    
+    def preprocess_input_state(self, state):
+        # Unpack the state tuple
+        x, y, package_status, slippery_tile, narrow_corridor = state
+        
+        # Convert the booleans to integers
+        slippery_tile = int(slippery_tile)
+        narrow_corridor = int(narrow_corridor)
+        
+        # One-hot encoding the sample_status (example: 'X' -> [1, 0, 0], 'P' -> [0, 1, 0], 'D' -> [0, 0, 1])
+        package_status_vocab = ['X', 'P', 'D']
+        package_status_encoded = [1 if package_status == s else 0 for s in package_status_vocab]
+        
+        # Return processed inputs as a flat vector
+        return [x, y] + package_status_encoded + [slippery_tile, narrow_corridor]
+
+    # Define the model architecture
+    def build_model(self, input_dim):
+        model = models.Sequential()
+        
+        # Input layer
+        model.add(layers.InputLayer(input_shape=(input_dim,)))
+        
+        # Hidden layers
+        model.add(layers.Dense(64, activation='relu'))
+        model.add(layers.Dense(32, activation='relu'))
+        
+        # Output layer (7 possible outputs: 0 to 6) with one-hot encoding
+        model.add(layers.Dense(7, activation='softmax'))  # Softmax for one-hot encoding
+        
+        # Compile the model
+        model.compile(optimizer='adam',
+                    loss='categorical_crossentropy',  # Use categorical cross-entropy
+                    metrics=['accuracy'])
+        
+        return model
