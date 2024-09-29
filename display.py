@@ -1,12 +1,22 @@
 import copy
 import os
 import numpy as np
+import simple_colors
 from matplotlib import animation
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 from PIL import Image
 
-
+def report_sim_results(sim_results, trials):
+    for context_sim in range(7):
+        sim_name, R1_stats, R2_stats, R3_stats, reached_goal_percentage = sim_results[context_sim]
+        print(simple_colors.yellow('Results for '+ sim_name + ' [over '+str(trials)+' trials]:', ['bold', 'underlined']))
+        print(simple_colors.cyan('Objective 1:', ['bold']), R1_stats[0], '±', R1_stats[1])
+        print(simple_colors.cyan('Objective 2:', ['bold']), R2_stats[0], '±', R2_stats[1])
+        print(simple_colors.cyan('Objective 3:', ['bold']), R3_stats[0], '±', R3_stats[1])
+        print(simple_colors.cyan('Reached Goal:', ['bold']), reached_goal_percentage, '% times.')
+        print()
+        
 def display_animation(frames, savename='animation', fps=4):
     '''Displays the animation of the agent following the given policy.'''
     fig, ax = plt.subplots()

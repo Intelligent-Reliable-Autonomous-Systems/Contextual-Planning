@@ -10,17 +10,16 @@ from keras import layers, models
 
 class SalpEnvironment:
     def __init__(self, filename, context_sim):
+        self.OMEGA = [1, 2, 0]  # meta ordering over contexts c1 > c2 > c0
         # currently setup as ordering for context i = context_ordering[i]   
-        context_ordering = {0: [[0, 0, 0], [0, 0, 0], [0, 0, 0]], 
-                            1: [[0, 1, 2], [0, 1, 2], [0, 1, 2]], 
-                            2: [[1, 2, 0], [1, 2, 0], [1, 2, 0]], 
-                            3: [[0, 1, 2], [0, 1, 2], [0, 1, 2]], 
+        context_ordering = {0: [[0, 0, 0], [0, 0, 0], [0, 0, 0]],  # not invoked just to show
+                            1: [self.OMEGA, self.OMEGA, self.OMEGA],  # not invoked just to show
+                            2: [self.OMEGA, self.OMEGA, self.OMEGA], 
+                            3: [[0, 1, 2], [1, 0, 2], [2, 0, 1]], 
                             4: [[0, 1, 2], [1, 0, 2], [2, 0, 1]], 
                             5: [[0, 1, 2], [1, 0, 2], [2, 0, 1]],
-                            6: [[0, 1, 2], [1, 0, 2], [2, 0, 1]],
-                            7: [[0, 1, 2], [1, 0, 2], [2, 0, 1]],}
+                            6: [[0, 1, 2], [1, 0, 2], [2, 0, 1]],}
         
-        self.OMEGA = [1, 2, 0]  # meta ordering over contexts c1 > c2 > c0
         
         # Read the grid from the file and initialize the environment
         All_States, rows, columns = read_grid.grid_read_from_file(filename)
@@ -68,7 +67,7 @@ class SalpEnvironment:
         # state of an agent: <s[0]: x, s[1]: y, s[2]: sample_status, s[3]: coral_flag, s[4]: eddy_flag>
         s_next = self.step(s, a)
         if s_next == self.s_goal and a != 'Noop':
-            return 100
+            return 50
         elif s_next == self.s_goal and a == 'Noop':
             return 0
         else:
@@ -206,8 +205,8 @@ class SalpAgent:
         self.Pi_G = {}  # Global synthesized policy
         self.PI = {}  # policy from all contexts in a dictionary mapping context to policy
         self.r_1 = 0
-        self.r_2 = 0
-        self.r_3 = 0
+        self.r_2 = 50
+        self.r_3 = 50
         for context in Grid.Contexts:
             self.PI[context] = {}
 
@@ -230,9 +229,9 @@ class SalpAgent:
                 s[2] = s[2]
         elif a == 'U' or a == 'D' or a == 'L' or a == 'R':
             # s is the states with the maximum probability
-            T = self.get_transition_prob(tuple(s), a)
-            s = max(T, key=T.get)
-            # s = self.sample_state(tuple(s), a)
+            # T = self.get_transition_prob(tuple(s), a)
+            # s = max(T, key=T.get)
+            s = self.sample_state(tuple(s), a)
         elif a == 'Noop':
             s = s
         else:
@@ -262,6 +261,11 @@ class SalpAgent:
         self.trajectory = []
         self.plan = ""
         self.A = copy.deepcopy(self.A_initial)
+        self.r_1 = 0
+        self.r_2 = 50
+        self.r_3 = 50
+        self.R = 0
+        
         
     def follow_policy(self, Pi=None):
         if Pi is None:
@@ -275,27 +279,31 @@ class SalpAgent:
             self.s = self.step(self.s, Pi[self.s])
             self.path = self.path + "->" + str(self.s)
             # if s is stuck in a loop or not making progress, break
-            if len(self.trajectory) > 20:
+            if len(self.trajectory) > 40:
                 if self.trajectory[-1] == self.trajectory[-5]:
-                    print("Agent " + str(self.label) + " is stuck in a loop!")
+                    print("Agent " + str(self.label) + " is stuck in a loop at s = "+str(self.s)+"!")
                     break
         self.trajectory.append((self.s, Pi[self.s], None))
         
     def follow_policy_rollout(self, Pi=None):
+        self.s = copy.deepcopy(self.s0)
         if Pi is None:
             Pi = copy.deepcopy(self.Pi_G)
         while not self.at_goal():
             # print(str(self.s)+ " -> " + str(Pi[self.s]) + " -> " + str( self.step(self.s, Pi[self.s])))
             R = self.Grid.R1(self.s, Pi[self.s])
             self.R += R
+            self.r_1 += self.Grid.R1(self.s, Pi[self.s])
+            self.r_2 += self.Grid.R2(self.s, Pi[self.s])
+            self.r_3 += self.Grid.R3(self.s, Pi[self.s])
             self.trajectory.append((self.s, Pi[self.s], R))
             self.plan += " -> " + str(Pi[self.s])
             self.s = self.sample_state(self.s, Pi[self.s])  # self.step(self.s, Pi[self.s])
             self.path = self.path + "->" + str(self.s)
             # if s is stuck in a loop or not making progress, break
-            if len(self.trajectory) > 20:
+            if len(self.trajectory) > 100:
                 if self.trajectory[-1] == self.trajectory[-5]:
-                    print("Agent " + str(self.label) + " is stuck in a loop!")
+                    print("Agent " + str(self.label) + " is stuck in a loop at s = "+str(self.s)+"!")
                     break
         self.trajectory.append((self.s, Pi[self.s], None))
                     
@@ -403,7 +411,7 @@ class SalpAgent:
         batch_size = len(self.S)
         epochs = 1000
         print("Starting to train the DNN model.")
-        model.fit(X, Y, epochs=epochs, batch_size=batch_size)
+        model.fit(X, Y, epochs=epochs, batch_size=batch_size,verbose=0)
         print("DNN training completed.")
         print("Compiling policy...")
         Pi_G = {}
@@ -412,7 +420,7 @@ class SalpAgent:
             weights = [w[[obj_idx for obj_idx in range(len(ordering)) if ordering[obj_idx]==i][0]] for i in range(len(ordering))]
             x = np.array(self.preprocess_input_state(s) + weights)
             x = x.reshape(1, -1)
-            y = model.predict(x)
+            y = model.predict(x,verbose=0)
             Pi_G[s] = self.postprocess_output(y)
         print("Policy compiled.")
         return self, Pi_G

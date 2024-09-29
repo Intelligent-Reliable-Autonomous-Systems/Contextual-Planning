@@ -32,7 +32,7 @@ def value_iteration(agent, Reward):
             # print(simple_colors.blue('Value Iteration converged in {} iterations.\n'.format(iter)))
             break
         iter += 1
-    return V, Pi
+    return agent, Pi
 
 def Q_value_iteration(agent, Reward):
     '''

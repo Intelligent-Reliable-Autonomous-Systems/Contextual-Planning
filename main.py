@@ -1,13 +1,21 @@
 import simple_colors
+import global_policy
 import display
-import value_iteration
-import oracle_policy
-import metareasoner as MR
-from timeit import default_timer as timer
 
 domain = 'salp' # options - ['salp', 'warehouse', 'taxi']
-
-for context_sim in range(8):
+trials = 1000
+savenames = {   0: 'Task only',
+                1: 'Single Preference (Meta-ordering)', 
+                2: 'Scalarization Single Preference (Meta-ordering)',
+                3: 'Scalarization Contextual Preferences',
+                4: 'Contextual Scalarization DNN', 
+                5: 'Contextual Approach without Conflict Resolution',
+                6: 'Contextual Approach with Conflict Resolution'}
+sim_results = {}  # averaged over trials for each sim above 0-6
+for context_sim in range(7):
+    detected_counter = 0
+    solved_counter = 0
+    not_solved_counter = 0
     if domain == 'salp':
         from salp_mdp import SalpEnvironment, SalpAgent
         Env = SalpEnvironment("grids/salp/illustration_eddy.txt", context_sim)
@@ -23,35 +31,10 @@ for context_sim in range(8):
     else:
         print(simple_colors.red('Invalid domain name!', ['bold']))
         break
-    savenames = {0: 'Task only',
-                1: 'Task > NSE Mitigation', 
-                2: 'NSE Mitigation > Task', 
-                3: 'Scalarization Single Preference',
-                4: 'Scalarization Contextual Preferences',
-                5: 'Contextual Scalarization DNN', 
-                6: 'Contextual Approach without Conflict Resolution',
-                7: 'Contextual Approach with Conflict Resolution'}
-
+    
     print(simple_colors.cyan('Context Simulation: ' + savenames[context_sim], ['bold', 'underlined']))
-    if context_sim in [3, 4]:
-        agent, Pi_G = value_iteration.contextual_scalarized_value_iteration(agent)
-    elif context_sim == 5:
-        agent, Pi_G = agent.get_contextual_scalarized_dnn_policy()
-    else:
-        agent, Pi_G = value_iteration.contextual_lexicographic_value_iteration(agent)
-    agent.Pi_G = Pi_G
-    conflict = MR.conflict_checker(Pi_G, agent)
-    if conflict: print(simple_colors.red('Conflict Detected!', ['bold']) )
-    else: print(simple_colors.green('No Conflicts', ['bold']))
-    if context_sim == 7:
-        Pi_G = MR.conflict_resolver(Pi_G, agent)
-        conflict = MR.conflict_checker(Pi_G, agent)
-        if conflict: print(simple_colors.red('Conflict Detected!', ['bold']) )
-        else: print(simple_colors.green('No Conflicts', ['bold']))
-    if domain == 'salp':
-        display.animate_policy_salp(agent, Pi_G, savenames[context_sim], stochastic_transition=False)#, savenames[context_sim]) 
-    elif domain == 'warehouse':
-        display.animate_policy_warehouse(agent, Pi_G, savenames[context_sim], stochastic_transition=False)#, savenames[context_sim]) 
-    elif domain == 'taxi':
-        display.animate_policy_taxi(agent, Pi_G, savenames[context_sim], stochastic_transition=False)#, savenames[context_sim]) 
-    wait = input("Press Enter to continue...")
+    print(agent)
+    agent, Pi_G = global_policy.get_global_policy(agent, context_sim)
+    R1_stats, R2_stats, R3_stats, reached_goal_percentage = global_policy.get_multiple_rollout_states(agent, Pi_G, context_sim, trials)
+    sim_results[context_sim] = [savenames[context_sim], R1_stats, R2_stats, R3_stats, reached_goal_percentage]
+display.report_sim_results(sim_results, trials)
