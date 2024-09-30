@@ -39,8 +39,8 @@ def get_global_policy(agent, context_sim):
     else: 
         print(simple_colors.green('No Conflicts', ['bold']))
     if context_sim == 6 and conflict:
-        Pi_G = MR.conflict_resolver(Pi_G, agent)
-        conflict = MR.conflict_checker(Pi_G, agent)
+        Pi_G = MR.conflict_resolver_new(Pi_G, agent)
+        conflict = MR.conflict_checker(Pi_G, agent)       
         if conflict: 
             print(simple_colors.red('Conflict count not be resolved!', ['bold']) )
         else: 
