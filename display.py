@@ -6,7 +6,48 @@ from matplotlib import animation
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 from PIL import Image
+import seaborn as sns
+def heatmap():
+    # Data for 7 methods: performance on o_1, o_2, and o_3
+    # Example: replace this with your actual data
+    data = {
+            'Task only': [68, 26, 61],
+            'Single Preference (Meta-ordering)': [60, 96, 70],
+            'Scalarization Single Preference (Meta-ordering)': [54, 96, 87],
+            'Scalarization Contextual Preferences': [42, 49, 46],
+            'Contextual Scalarization DNN': [61, 89, 93],
+            'Contextual Approach without Conflict Resolution': [45, 55, 47],
+            'Contextual Approach with Conflict Resolution': [59, 95, 90]
+    }
 
+    # Max possible values for each objective (as given by you)
+    max_values = {'o_1': 76, 'o_2': 100, 'o_3': 100}
+
+    # Normalize the data (each value divided by the max possible value for that objective)
+    normalized_data = {}
+    for method, scores in data.items():
+        normalized_data[method] = [
+            scores[0] / max_values['o_1'],  # normalize o_1
+            scores[1] / max_values['o_2'],  # normalize o_2
+            scores[2] / max_values['o_3']   # normalize o_3
+        ]
+
+    # Convert the normalized data into a matrix (list of lists)
+    heatmap_data = np.array(list(normalized_data.values()))
+
+    # Define the labels for the heatmap (rows as methods, columns as objectives)
+    methods = list(normalized_data.keys())
+    objectives = ['o_1', 'o_2', 'o_3']
+
+    # Create the heatmap
+    plt.figure(figsize=(8, 6))
+    ax = sns.heatmap(heatmap_data, annot=True, cmap="YlOrRd", xticklabels=objectives, yticklabels=methods, cbar_kws={'label': 'Performance (Normalized)'})
+
+    # Customize the heatmap
+    ax.set_title('Method Performance on Objectives')
+    plt.xlabel('Objectives')
+    plt.ylabel('Methods')
+    plt.show()
 def report_sim_results(sim_results, trials):
     for context_sim in range(7):
         sim_name, R1_stats, R2_stats, R3_stats, reached_goal_percentage = sim_results[context_sim]
@@ -433,3 +474,6 @@ def get_next_all_state_taxi(s, Grid, location_tracker):
             new_all_state[i_prev][j_prev] = 'b'    
     location_tracker.append((i, j))
     return new_all_state, location_tracker
+
+
+heatmap()
