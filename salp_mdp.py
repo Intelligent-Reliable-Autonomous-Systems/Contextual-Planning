@@ -392,7 +392,7 @@ class SalpAgent:
         return s_next
 
     def get_contextual_scalarized_dnn_policy(self):
-        w = [0.5, 0.3, 0.2]
+        w = [0.7, 0.2, 0.1]
         # CCS orderings for
         O = [[0, 1, 2], [1, 0, 2], [2, 0, 1], [0, 2, 1], [1, 2, 0], [2, 1, 0]]
         X = []

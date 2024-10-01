@@ -11,13 +11,13 @@ def heatmap():
     # Data for 7 methods: performance on o_1, o_2, and o_3
     # Example: replace this with your actual data
     data = {
-            'Task only': [68, 26, 61],
-            'Single Preference (Meta-ordering)': [60, 96, 70],
-            'Scalarization Single Preference (Meta-ordering)': [54, 96, 87],
-            'Scalarization Contextual Preferences': [42, 49, 46],
-            'Contextual Scalarization DNN': [61, 89, 93],
-            'Contextual Approach without Conflict Resolution': [45, 55, 47],
-            'Contextual Approach with Conflict Resolution': [59, 95, 90]
+            'Task only'+r'$(o_1)$': [68, 26, 61],
+            'Lexicographic\nSingle \nPreference'+r'$(\Omega)$': [60, 96, 70],
+            'Scalarization \nSingle \nPreference'+r'$(\Omega)$': [52, 96, 82],
+            'Scalarization \nContextual \nPreferences': [42, 49, 46],
+            'Yang et. al,\n 2019': [54, 79, 88],
+            'Contextual \nApproach \nw/o Resolver': [45, 55, 47],
+            'Contextual \nApproach \nw/ Resolver': [55, 95, 90]
     }
 
     # Max possible values for each objective (as given by you)
@@ -34,28 +34,43 @@ def heatmap():
 
     # Convert the normalized data into a matrix (list of lists)
     heatmap_data = np.array(list(normalized_data.values()))
-
+    # Transpose the data to switch rows and columns
+    heatmap_data = heatmap_data.T  # This switches the rows and columns
     # Define the labels for the heatmap (rows as methods, columns as objectives)
     methods = list(normalized_data.keys())
-    objectives = ['o_1', 'o_2', 'o_3']
+    objectives = [r'$o_1$', r'$o_2$', r'$o_3$']
 
     # Create the heatmap
-    plt.figure(figsize=(8, 6))
-    ax = sns.heatmap(heatmap_data, annot=True, cmap="YlOrRd", xticklabels=objectives, yticklabels=methods, cbar_kws={'label': 'Performance (Normalized)'})
+    plt.figure(figsize=(10, 3))
+    ax = sns.heatmap(heatmap_data, annot=True, cmap="YlOrRd", xticklabels=methods, yticklabels=objectives, cbar_kws={'label': 'Total Reward (Normalized)'})
 
     # Customize the heatmap
-    ax.set_title('Method Performance on Objectives')
-    plt.xlabel('Objectives')
-    plt.ylabel('Methods')
+    ax.set_title('Normalized Performance on Objectives', fontsize=14)
+    plt.ylabel('Objectives', fontsize=14)
+    # plt.xlabel('Methods', fontsize=14)
+    ax.xaxis.set_tick_params(rotation=0)
+    ax.yaxis.set_tick_params(rotation=0)
+    plt.tight_layout(pad=0) 
     plt.show()
-def report_sim_results(sim_results, trials):
+    
+def report_sim_results(sim_results, trials, grid_num):
     for context_sim in range(7):
         sim_name, R1_stats, R2_stats, R3_stats, reached_goal_percentage = sim_results[context_sim]
-        print(simple_colors.yellow('Results for '+ sim_name + ' [over '+str(trials)+' trials]:', ['bold', 'underlined']))
+        print(simple_colors.yellow('Results for '+ sim_name + ' [over '+str(trials)+' trials in Grid'+str(grid_num)+']:', ['bold', 'underlined']))
         print(simple_colors.cyan('Objective 1:', ['bold']), R1_stats[0], '±', R1_stats[1])
         print(simple_colors.cyan('Objective 2:', ['bold']), R2_stats[0], '±', R2_stats[1])
         print(simple_colors.cyan('Objective 3:', ['bold']), R3_stats[0], '±', R3_stats[1])
         print(simple_colors.cyan('Reached Goal:', ['bold']), reached_goal_percentage, '% times.')
+        print()
+        
+def report_sim_results_over_grids_and_trails(sim_results_over_grids, trials):
+    for context_sim in range(7):
+        sim_names, R1_stats, R2_stats, R3_stats, reached_goal_percentage = sim_results_over_grids
+        print(simple_colors.yellow('Results for '+ sim_names[context_sim] + ' [over '+str(trials)+' over '+str(len(R1_stats[context_sim]))+' grids (15x15)]:', ['bold', 'underlined']))
+        print(simple_colors.cyan('Objective 1:', ['bold']), np.mean(R1_stats[context_sim]))
+        print(simple_colors.cyan('Objective 2:', ['bold']), np.mean(R2_stats[context_sim]))
+        print(simple_colors.cyan('Objective 3:', ['bold']), np.mean(R3_stats[context_sim]))
+        print(simple_colors.cyan('Reached Goal:', ['bold']), np.mean(reached_goal_percentage[context_sim]), '% times.')
         print()
         
 def display_animation(frames, savename='animation', fps=4):
@@ -476,4 +491,4 @@ def get_next_all_state_taxi(s, Grid, location_tracker):
     return new_all_state, location_tracker
 
 
-heatmap()
+# heatmap()
