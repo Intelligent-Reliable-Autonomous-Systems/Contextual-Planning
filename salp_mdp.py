@@ -13,7 +13,7 @@ class SalpEnvironment:
         self.OMEGA = [0, 1, 2]  # meta ordering over contexts c1 > c0 > c2
         # currently setup as ordering for context i = context_ordering[i]   
         context_ordering = {0: [[0, 0, 0], [0, 0, 0], [0, 0, 0]],  # not invoked just to show
-                            1: [[0, 1, 2], [0, 1, 2],[ 0, 1, 2]],  # not invoked just to show
+                            1: [[0, 1, 2], [0, 1, 2], [0, 1, 2]],  # not invoked just to show
                             2: [[0, 1, 2], [0, 1, 2], [0, 1, 2]],  # not invoked just to show
                             3: [[0, 1, 2], [1, 0, 2], [2, 0, 1]],    # [c0_ordering, c1_ordering, c2_ordering]
                             4: [[0, 1, 2], [1, 0, 2], [2, 0, 1]],    # [c0_ordering, c1_ordering, c2_ordering]
@@ -53,6 +53,7 @@ class SalpEnvironment:
 
     def get_state_space(self):
         S = []
+        # s: <s[0]: x, s[1]: y, s[2]: sample_status, s[3]: coral_flag, s[4]: eddy_flag>
         for i in range(self.rows):
             for j in range(self.columns):
                 for sample in ['X','P','D']:
@@ -65,27 +66,7 @@ class SalpEnvironment:
              [self.R1_out_context, self.R2_out_context, self.R3_in_context]]
         return R
 
-    def R1(self, s, a):
-        # sample delivery reward
-        # state of an agent: <s[0]: x, s[1]: y, s[2]: sample_status, s[3]: coral_flag, s[4]: eddy_flag>
-        if self.state2context_map[s] == 0:
-            return self.R1_in_context(s, a)
-        else:
-            return self.R1_out_context(s, a)
-        
-    def R2(self, s, a):
-        # Coral NSE mitigation reward (penalty)
-        if self.state2context_map[s] == 1:
-            return self.R2_in_context(s, a)
-        else:
-            return self.R2_out_context(s, a)
-        
-    def R3(self, s, a):
-        # Eddy current battery draining (penalty)
-        if self.state2context_map[s] == 2:
-            return self.R3_in_context(s, a)
-        else:
-            return self.R3_out_context(s, a)
+
     
     def R1_in_context(self, s, a):
         # sample delivery reward
@@ -324,38 +305,17 @@ class SalpAgent:
         self.r_2 = 100
         self.r_3 = 100
         self.R = 0
-        
-        
-    def follow_policy(self, Pi=None):
-        if Pi is None:
-            Pi = copy.deepcopy(self.Pi)
-        while not self.at_goal():
-            # print(str(self.s)+ " -> " + str(Pi[self.s]) + " -> " + str( self.step(self.s, Pi[self.s])))
-            R = self.Grid.R1(self.s, Pi[self.s])
-            self.R += R
-            self.trajectory.append((self.s, Pi[self.s], R))
-            self.plan += " -> " + str(Pi[self.s])
-            self.s = self.step(self.s, Pi[self.s])
-            self.path = self.path + "->" + str(self.s)
-            # if s is stuck in a loop or not making progress, break
-            if len(self.trajectory) > 100:
-                if self.trajectory[-1] == self.trajectory[-5]:
-                    print("Agent " + str(self.label) + " is stuck in a loop at s = "+str(self.s)+"!")
-                    break
-        self.trajectory.append((self.s, Pi[self.s], None))
-        
+
     def follow_policy_rollout(self, Pi=None):
         self.s = copy.deepcopy(self.s0)
         if Pi is None:
             Pi = copy.deepcopy(self.Pi_G)
         while not self.at_goal():
             # print(str(self.s)+ " -> " + str(Pi[self.s]) + " -> " + str( self.step(self.s, Pi[self.s])))
-            R = self.Grid.R1(self.s, Pi[self.s])
-            self.R += R
-            self.r_1 += self.Grid.R1(self.s, Pi[self.s])
-            self.r_2 += self.Grid.R2(self.s, Pi[self.s])
-            self.r_3 += self.Grid.R3(self.s, Pi[self.s])
-            self.trajectory.append((self.s, Pi[self.s], R))
+            self.r_1 += self.Grid.R1_out_context(self.s, Pi[self.s])
+            self.r_2 += self.Grid.R2_out_context(self.s, Pi[self.s])
+            self.r_3 += self.Grid.R3_out_context(self.s, Pi[self.s])
+            self.trajectory.append((self.s, Pi[self.s]))
             self.plan += " -> " + str(Pi[self.s])
             self.s = self.sample_state(self.s, Pi[self.s])  # self.step(self.s, Pi[self.s])
             self.path = self.path + "->" + str(self.s)

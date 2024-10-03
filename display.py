@@ -491,4 +491,4 @@ def get_next_all_state_taxi(s, Grid, location_tracker):
     return new_all_state, location_tracker
 
 
-heatmap()
+# heatmap()

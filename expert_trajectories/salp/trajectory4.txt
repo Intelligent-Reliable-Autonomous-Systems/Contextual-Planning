@@ -1,0 +1,26 @@
+State	Action	R1	R2	R3	Context
+(0, 0, 'X', False, False) R -1 0 0 0
+(0, 1, 'X', False, False) D -1 0 0 0
+(0, 2, 'X', False, False) D -1 0 0 0
+(0, 3, 'X', False, False) D -1 0 0 0
+(0, 4, 'X', False, False) D -1 0 0 0
+(1, 4, 'X', False, False) D -1 0 0 0
+(2, 4, 'X', False, False) D -1 0 0 0
+(3, 4, 'X', False, False) D -1 0 0 0
+(3, 5, 'X', False, False) L -1 0 0 0
+(3, 4, 'X', False, False) D -1 0 0 0
+(4, 4, 'X', False, False) D -1 0 0 0
+(5, 4, 'X', False, False) D -1 0 0 0
+(6, 4, 'X', False, False) pick -1 0 0 0
+(6, 4, 'P', False, False) R -1 0 0 0
+(6, 5, 'P', False, False) D -1 0 0 0
+(7, 5, 'P', False, False) R -1 -5 0 0
+(7, 6, 'P', True, False) R -1 0 0 1
+(7, 7, 'P', False, False) R -1 0 -5 0
+(6, 7, 'P', False, False) D -1 0 0 0
+(7, 7, 'P', False, False) R -1 0 -5 0
+(7, 8, 'P', False, True) D -1 0 0 2
+(8, 8, 'P', False, False) D -1 -5 0 0
+(9, 8, 'P', True, False) D -1 0 0 1
+(10, 8, 'P', False, False) drop 100 0 0 0
+(10, 8, 'D', False, False) Noop 0 0 0 0

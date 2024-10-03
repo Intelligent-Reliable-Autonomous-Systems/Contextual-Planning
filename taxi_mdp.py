@@ -13,8 +13,8 @@ class TaxiEnvironment:
         self.OMEGA = [1, 2, 0]  # meta ordering over contexts c1 > c2 > c0
         # currently setup as ordering for context i = context_ordering[i]   
         context_ordering = {0: [[0, 0, 0], [0, 0, 0], [0, 0, 0]],  # not invoked just to show
-                            1: [self.OMEGA, self.OMEGA, self.OMEGA],  # not invoked just to show
-                            2: [self.OMEGA, self.OMEGA, self.OMEGA], 
+                            1: [[0, 2, 1], [0, 2, 1], [0, 2, 1]],  # not invoked just to show
+                            2: [[0, 2, 1], [0, 2, 1], [0, 2, 1]], 
                             3: [[0, 2, 1], [1, 0, 2], [2, 0, 1]], 
                             4: [[0, 2, 1], [1, 0, 2], [2, 0, 1]], 
                             5: [[0, 2, 1], [1, 0, 2], [2, 0, 1]],
@@ -34,6 +34,7 @@ class TaxiEnvironment:
         # Initialize parameters for the CLMDP
         self.S = self.get_state_space()
         self.objectives = [i for i in context_ordering[context_sim][0]]
+        self.R_obs = [self.R1_out_context, self.R2_out_context, self.R3_out_context]
         # removing duplicates in self.objectives
         self.objectives = list(set(self.objectives))
         self.objective_names = {0: 'Passenger Drop-off', 1: 'Use Autonomy-Enabled Tracks', 2: 'Avoid Pothole Discomfort'}
@@ -63,32 +64,56 @@ class TaxiEnvironment:
         return S
 
     def get_reward_functions(self):
-        R = [self.R1, self.R2, self.R3]
+        R = [[self.R1_in_context, self.R2_out_context, self.R3_out_context],
+             [self.R1_out_context, self.R2_in_context, self.R3_out_context],
+             [self.R1_out_context, self.R2_out_context, self.R3_in_context]]
         return R
 
-    def R1(self, s, a):
+    def R1_in_context(self, s, a):
         # Passengar Drop-off reward
         # s: <s[0]: x, s[1]: y, s[2]: passenger_status, s[3]: pothole, s[4]: road_type>
         s_next = self.step(s, a)
         if s_next == self.s_goal and a != 'Noop':
-            return 50
+            return 100
+        elif s_next == self.s_goal and a == 'Noop':
+            return 0
+        else:
+            return -5
+    
+    def R1_out_context(self, s, a):
+        # Passengar Drop-off reward
+        # s: <s[0]: x, s[1]: y, s[2]: passenger_status, s[3]: pothole, s[4]: road_type>
+        s_next = self.step(s, a)
+        if s_next == self.s_goal and a != 'Noop':
+            return 100
         elif s_next == self.s_goal and a == 'Noop':
             return 0
         else:
             return -1
-    
-    def R2(self, s, a):
+        
+    def R2_in_context(self, s, a):
         # Penalty for not being on autonomy-enabled track s[4] \in {'A', 'R'}
         # operation actions = ['Noop', 'pick', 'drop', 'U', 'D', 'L', 'R']
         # s: <s[0]: x, s[1]: y, s[2]: passenger_status, s[3]: pothole, s[4]: road_type>
         s_next = self.step(s, a)
         if s_next[4] == 'A':  # if the agent is on the normal road
-            R = -1
+            R = -10
         else:
             R = 0
         return R
     
-    def R3(self, s, a):
+    def R2_out_context(self, s, a):
+        # Penalty for not being on autonomy-enabled track s[4] \in {'A', 'R'}
+        # operation actions = ['Noop', 'pick', 'drop', 'U', 'D', 'L', 'R']
+        # s: <s[0]: x, s[1]: y, s[2]: passenger_status, s[3]: pothole, s[4]: road_type>
+        s_next = self.step(s, a)
+        if s_next[4] == 'A':  # if the agent is on the normal road
+            R = -5
+        else:
+            R = 0
+        return R
+    
+    def R3_in_context(self, s, a):
         # Pothole discomfort penalty
         # s: <s[0]: x, s[1]: y, s[2]: passenger_status, s[3]: pothole, s[4]: road_type>
         s_next = self.step(s, a)        
@@ -98,12 +123,22 @@ class TaxiEnvironment:
             R = 0
         return R
     
-    def f_R(self, obj):
+    def R3_out_context(self, s, a):
+        # Pothole discomfort penalty
+        # s: <s[0]: x, s[1]: y, s[2]: passenger_status, s[3]: pothole, s[4]: road_type>
+        s_next = self.step(s, a)        
+        if s[2] == 'P' and s_next[3] is True:
+            R = -5
+        else:
+            R = 0
+        return R
+    
+    def f_R(self, obj, context):
         ''''Return the reward function for the given objective'''
         if obj not in self.objectives:
             print("Invalid objective")
             return None
-        return self.Reward_for_obj[obj]
+        return self.Reward_for_obj[context][obj]
     
     def f_w(self, context):
         '''Return the context ordering for the given context'''
@@ -220,8 +255,8 @@ class TaxiAgent:
         self.Pi_G = {}  # Global synthesized policy
         self.PI = {}  # policy from all contexts in a dictionary mapping context to policy
         self.r_1 = 0
-        self.r_2 = 0
-        self.r_3 = 0
+        self.r_2 = 100
+        self.r_3 = 100
         for context in Grid.Contexts:
             self.PI[context] = {}
         
@@ -277,40 +312,20 @@ class TaxiAgent:
         self.plan = ""
         self.A = copy.deepcopy(self.A_initial)
         self.r_1 = 0
-        self.r_2 = 50
-        self.r_3 = 50
+        self.r_2 = 100
+        self.r_3 = 100
         self.R = 0
-        
-    def follow_policy(self, Pi=None):
-        if Pi is None:
-            Pi = copy.deepcopy(self.Pi)
-        while not self.at_goal():
-            # print(str(self.s)+ " -> " + str(Pi[self.s]) + " -> " + str( self.step(self.s, Pi[self.s])))
-            R = self.Grid.R1(self.s, Pi[self.s])
-            self.R += R
-            self.trajectory.append((self.s, Pi[self.s], R))
-            self.plan += " -> " + str(Pi[self.s])
-            self.s = self.step(self.s, Pi[self.s])
-            self.path = self.path + "->" + str(self.s)
-            # if s is stuck in a loop or not making progress, break
-            if len(self.trajectory) > 20:
-                if self.trajectory[-1] == self.trajectory[-5]:
-                    print("Agent " + str(self.label) + " is stuck in a loop!")
-                    break
-        self.trajectory.append((self.s, Pi[self.s], None))
-        
+
     def follow_policy_rollout(self, Pi=None):
         self.s = copy.deepcopy(self.s0)
         if Pi is None:
             Pi = copy.deepcopy(self.Pi_G)
         while not self.at_goal():
             # print(str(self.s)+ " -> " + str(Pi[self.s]) + " -> " + str( self.step(self.s, Pi[self.s])))
-            R = self.Grid.R1(self.s, Pi[self.s])
-            self.R += R
-            self.r_1 += self.Grid.R1(self.s, Pi[self.s])
-            self.r_2 += self.Grid.R2(self.s, Pi[self.s])
-            self.r_3 += self.Grid.R3(self.s, Pi[self.s])
-            self.trajectory.append((self.s, Pi[self.s], R))
+            self.r_1 += self.Grid.R1_out_context(self.s, Pi[self.s])
+            self.r_2 += self.Grid.R2_out_context(self.s, Pi[self.s])
+            self.r_3 += self.Grid.R3_out_context(self.s, Pi[self.s])
+            self.trajectory.append((self.s, Pi[self.s]))
             self.plan += " -> " + str(Pi[self.s])
             self.s = self.sample_state(self.s, Pi[self.s])  # self.step(self.s, Pi[self.s])
             self.path = self.path + "->" + str(self.s)
@@ -319,8 +334,33 @@ class TaxiAgent:
                 if self.trajectory[-1] == self.trajectory[-5]:
                     print("Agent " + str(self.label) + " is stuck in a loop at s = "+str(self.s)+"!")
                     break
-        self.trajectory.append((self.s, Pi[self.s], None))
-        
+        self.trajectory.append((self.s, Pi[self.s], None))  
+              
+    def get_trajectory(self, Pi=None):
+        self.s = copy.deepcopy(self.s0)
+        if Pi is None:
+            Pi = copy.deepcopy(self.Pi_G)
+        while not self.at_goal():
+            s = self.s
+            a = Pi[self.s]
+            self.trajectory.append((s, a, 
+                                    self.Grid.R1_out_context(s, a), 
+                                    self.Grid.R2_out_context(s, a), 
+                                    self.Grid.R3_out_context(s, a), 
+                                    self.Grid.state2context_map[s]))
+            self.s = self.sample_state(s, a)  # self.step(self.s, Pi[self.s])
+            # if s is stuck in a loop or not making progress, break
+            if len(self.trajectory) > 100:
+                if self.trajectory[-1] == self.trajectory[-5]:
+                    print("Agent " + str(self.label) + " is stuck in a loop at s = "+str(self.s)+"!")
+                    break
+        self.trajectory.append((self.s, Pi[self.s], 
+                                self.Grid.R1_out_context(self.s, Pi[self.s]), 
+                                self.Grid.R2_out_context(self.s, Pi[self.s]), 
+                                self.Grid.R3_out_context(self.s, Pi[self.s]), 
+                                self.Grid.state2context_map[self.s]))
+        return self.trajectory
+                    
     def get_action_space(self):
         # Get the action space for taxi agent
         A = {}
