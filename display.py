@@ -11,13 +11,13 @@ def heatmap():
     # Data for 7 methods: performance on o_1, o_2, and o_3
     # Example: replace this with your actual data
     data = {
-            'Task only'+r'$(o_1)$': [68, 26, 61],
-            'Lexicographic\nSingle \nPreference'+r'$(\Omega)$': [60, 96, 70],
-            'Scalarization \nSingle \nPreference'+r'$(\Omega)$': [52, 96, 82],
-            'Scalarization \nContextual \nPreferences': [42, 49, 46],
-            'Yang et. al,\n 2019': [54, 79, 88],
-            'Contextual \nApproach \nw/o Resolver': [45, 55, 47],
-            'Contextual \nApproach \nw/ Resolver': [55, 95, 90]
+            'Task only'+r'$(o_1)$': [71, 64, 67],
+            'Lexicographic\nSingle \nPreference'+r'$(\Omega)$': [70, 63, 67],
+            'Scalarization \nSingle \nPreference'+r'$(\Omega)$': [66, 67, 88],
+            'Scalarization \nContextual \nPreferences': [61, 60, 91],
+            'Yang et. al,\n 2019': [34, 49, 85],
+            'Contextual \nApproach \nw/o Resolver': [31, 56, 86],
+            'Contextual \nApproach \nw/ Resolver': [62, 68, 94]
     }
 
     # Max possible values for each objective (as given by you)
@@ -45,7 +45,7 @@ def heatmap():
     ax = sns.heatmap(heatmap_data, annot=True, cmap="YlOrRd", xticklabels=methods, yticklabels=objectives, cbar_kws={'label': 'Total Reward (Normalized)'})
 
     # Customize the heatmap
-    ax.set_title('Normalized Performance on Objectives', fontsize=14)
+    ax.set_title('Normalized Performance in Objectives in Salp Domain', fontsize=14)
     plt.ylabel('Objectives', fontsize=14)
     # plt.xlabel('Methods', fontsize=14)
     ax.xaxis.set_tick_params(rotation=0)
@@ -491,4 +491,4 @@ def get_next_all_state_taxi(s, Grid, location_tracker):
     return new_all_state, location_tracker
 
 
-# heatmap()
+heatmap()

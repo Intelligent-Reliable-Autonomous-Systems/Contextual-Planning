@@ -5,7 +5,7 @@ import warnings
 warnings.filterwarnings('ignore')
 
 domain = 'salp' # options - ['salp', 'warehouse', 'taxi']
-trials = 1000
+trials = 100
 savenames = {   0: 'Task only',
                 1: 'Single Preference (Meta-ordering)', 
                 2: 'Scalarization Single Preference (Meta-ordering)',

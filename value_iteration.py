@@ -102,11 +102,11 @@ def action_set_value_iteration(agent, Reward):
     # Prune the action set
     A_pruned = {s: [] for s in S}
     for s in S:
-        A_pruned[s] = [a for a in A[s] if round(Q[s][a]) >= round(V[s])]
+        A_pruned[s] = [a for a in A[s] if round(Q[s][a]) >= round(V[s])-1]
     agent.A = copy.deepcopy(A_pruned)
     return agent
 
-def lexicographic_value_iteration(agent, ordering):
+def lexicographic_value_iteration(agent, ordering, context= None):
     '''
     params:
     agent: agent object
@@ -114,11 +114,17 @@ def lexicographic_value_iteration(agent, ordering):
     '''
     for obj in ordering[:-1]:
         print('\t\tComputing policy for '+ simple_colors.yellow('objective' + ': ' + str(obj) + ' (' + agent.Grid.objective_names[obj] + ')'))
-        Reward = agent.Grid.f_R(obj)
+        if context is not None:
+            Reward = agent.Grid.f_R(obj, context)
+        else:
+            Reward = agent.Grid.R_obs[obj]
         agent = action_set_value_iteration(agent, Reward)
     
     # For the last objective, do value iteration
-    Reward = agent.Grid.f_R(ordering[-1])
+    if context is not None:
+        Reward = agent.Grid.f_R(ordering[-1], context)
+    else:
+        Reward = agent.Grid.R_obs[ordering[-1]]
     print('\t\tComputing policy for '+ simple_colors.yellow('objective' + ': ' + str(ordering[-1]) + ' (' + agent.Grid.objective_names[ordering[-1]] + ')'))
     V, Pi = value_iteration(agent, Reward)
     return agent, Pi
@@ -139,13 +145,13 @@ def scalarized_value_iteration(agent, ordering):
         V_prev = copy.deepcopy(V)
         for s in S:
             if s == agent.s_goal:
-                V[s] = sum([agent.scalarization_weights[i] * agent.Grid.f_R(ordering[i])(s, 'Noop') for i in range(len(ordering))])
+                V[s] = sum([agent.scalarization_weights[i] * agent.Grid.R_obs[ordering[i]](s, 'Noop') for i in range(len(ordering))])
                 Pi[s] = 'Noop'
                 residual[s] = abs(V[s] - V_prev[s])
                 continue
             for a in A[s]:
                 T = agent.get_transition_prob(s, a)
-                scalarized_reward = sum([agent.scalarization_weights[i] * agent.Grid.f_R(ordering[i])(s, a) for i in range(len(ordering))])
+                scalarized_reward = sum([agent.scalarization_weights[i] * agent.Grid.R_obs[ordering[i]](s, a) for i in range(len(ordering))])
                 Q[s][a] = scalarized_reward + gamma * sum([T[s_prime] * V[s_prime] for s_prime in list(T.keys())])
             V[s] = max(Q[s].values())
             Pi[s] = max(Q[s], key=Q[s].get)
@@ -171,7 +177,7 @@ def contextual_lexicographic_value_iteration(agent):
         ordering = Grid.f_w(context)
         print('Computing policy for ' + simple_colors.red('context') + ': ' + simple_colors.red(str(context) + ' (' + agent.Grid.context_names[context] + ')'))
         print('\tOrdering: ', ordering)
-        agent, Pi = lexicographic_value_iteration(agent, ordering)
+        agent, Pi = lexicographic_value_iteration(agent, ordering, context)
         agent.PI[context] = Pi  # Store the policy for each context
     
     agent.A = copy.deepcopy(agent.A_initial)

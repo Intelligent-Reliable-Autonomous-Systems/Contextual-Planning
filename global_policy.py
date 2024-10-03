@@ -21,16 +21,16 @@ def get_global_policy(agent, context_sim):
     if context_sim == 0:
         agent, Pi_G = value_iteration.value_iteration(agent, agent.Grid.R1)
     elif context_sim == 1:
-        agent, Pi_G = value_iteration.lexicographic_value_iteration(agent, agent.Grid.OMEGA)
+        agent, Pi_G = value_iteration.lexicographic_value_iteration(agent, agent.Grid.f_w(agent.Grid.OMEGA[0])) 
     if context_sim == 2:
-        agent, Pi_G = value_iteration.scalarized_value_iteration(agent, agent.Grid.OMEGA)
+        agent, Pi_G = value_iteration.scalarized_value_iteration(agent,agent.Grid.f_w(agent.Grid.OMEGA[0]))
     elif context_sim == 3:
         agent, Pi_G = value_iteration.contextual_scalarized_value_iteration(agent)
-    elif context_sim == 4:
+    elif context_sim == 6:
         agent, Pi_G = agent.get_contextual_scalarized_dnn_policy()
     elif context_sim == 5:
         agent, Pi_G = value_iteration.contextual_lexicographic_value_iteration(agent)
-    elif context_sim == 6:
+    elif context_sim == 4:
         agent, Pi_G = value_iteration.contextual_lexicographic_value_iteration(agent)
     agent.Pi_G = Pi_G
     conflict = MR.conflict_checker(Pi_G, agent)
@@ -38,8 +38,8 @@ def get_global_policy(agent, context_sim):
         print(simple_colors.red('Conflict Detected!', ['bold']) )
     else: 
         print(simple_colors.green('No Conflicts', ['bold']))
-    if context_sim == 6 and conflict:
-        Pi_G = MR.conflict_resolver_new(Pi_G, agent)
+    if context_sim == 4 and conflict:
+        Pi_G = MR.conflict_resolver(Pi_G, agent)
         conflict = MR.conflict_checker(Pi_G, agent)       
         if conflict: 
             print(simple_colors.red('Conflict count not be resolved!', ['bold']) )
