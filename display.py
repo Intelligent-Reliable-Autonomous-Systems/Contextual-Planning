@@ -7,19 +7,12 @@ import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 from PIL import Image
 import seaborn as sns
-def heatmap():
-    # Data for 7 methods: performance on o_1, o_2, and o_3
-    # Example: replace this with your actual data
-    data = {
-            'Task only'+r'$(o_1)$': [71, 64, 67],
-            'Lexicographic\nSingle \nPreference'+r'$(\Omega)$': [70, 63, 67],
-            'Scalarization \nSingle \nPreference'+r'$(\Omega)$': [66, 67, 88],
-            'Scalarization \nContextual \nPreferences': [61, 60, 91],
-            'Yang et. al,\n 2019': [34, 49, 85],
-            'Contextual \nApproach \nw/o Resolver': [31, 56, 86],
-            'Contextual \nApproach \nw/ Resolver': [62, 68, 94]
-    }
-
+def heatmap(domain_name):
+    # read data from file "sim_results/"+domain_name+"/means.txt" as a dictionary with keys 1-7 each corresponding to a row refelcting a method
+    data = {}
+    with open("sim_results/"+domain_name+"/means.txt", "r") as file:
+        for i, line in enumerate(file):
+            data[str(i+1)] = list(map(int, line.strip().split()))
     # Max possible values for each objective (as given by you)
     max_values = {'o_1': 76, 'o_2': 100, 'o_3': 100}
 
@@ -41,17 +34,24 @@ def heatmap():
     objectives = [r'$o_1$', r'$o_2$', r'$o_3$']
 
     # Create the heatmap
-    plt.figure(figsize=(10, 3))
-    ax = sns.heatmap(heatmap_data, annot=True, cmap="YlOrRd", xticklabels=methods, yticklabels=objectives, cbar_kws={'label': 'Total Reward (Normalized)'})
+    plt.figure(figsize=(5, 2.2))
+    ax = sns.heatmap(heatmap_data, annot=True,cmap="YlOrRd", xticklabels=methods, 
+                     yticklabels=objectives, cbar_kws={'label': 'Normalized Reward'}, 
+                     annot_kws={"size": 12})
 
+    # Customize the colorbar label size
+    cbar = ax.collections[0].colorbar
+    cbar.ax.yaxis.label.set_size(14)
     # Customize the heatmap
-    ax.set_title('Normalized Performance in Objectives in Salp Domain', fontsize=14)
+    # ax.set_title('Normalized Performance in Objectives in '+domain_name+' Domain', fontsize=14)
     plt.ylabel('Objectives', fontsize=14)
     # plt.xlabel('Methods', fontsize=14)
-    ax.xaxis.set_tick_params(rotation=0)
-    ax.yaxis.set_tick_params(rotation=0)
+    ax.xaxis.set_tick_params(rotation=0, labelsize=14)
+    ax.yaxis.set_tick_params(rotation=0, labelsize=14)
     plt.tight_layout(pad=0) 
-    plt.show()
+    # plt.show()
+    # save the heatmap
+    plt.savefig('sim_results/'+domain_name+'/'+domain_name+'_performance_heatmap.png', dpi=300)
     
 def report_sim_results(sim_results, trials, grid_num):
     for context_sim in range(7):
@@ -491,4 +491,6 @@ def get_next_all_state_taxi(s, Grid, location_tracker):
     return new_all_state, location_tracker
 
 
-# heatmap()
+for domain_name in ['salp', 'warehouse', 'taxi']:
+    heatmap(domain_name)
+    
