@@ -10,9 +10,10 @@ import seaborn as sns
 def heatmap(domain_name):
     # read data from file "sim_results/"+domain_name+"/means.txt" as a dictionary with keys 1-7 each corresponding to a row refelcting a method
     data = {}
+    keys = ['B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'Our\napproach']
     with open("sim_results/"+domain_name+"/means.txt", "r") as file:
         for i, line in enumerate(file):
-            data[str(i+1)] = list(map(int, line.strip().split()))
+            data[keys[i]] = list(map(int, line.strip().split()))
     # Max possible values for each objective (as given by you)
     max_values = {'o_1': 76, 'o_2': 100, 'o_3': 100}
 
@@ -52,6 +53,42 @@ def heatmap(domain_name):
     # plt.show()
     # save the heatmap
     plt.savefig('sim_results/'+domain_name+'/'+domain_name+'_performance_heatmap.png', dpi=300)
+    
+def percentile_trajectories(domain_name, obj):
+    # read data from file "percentile_data/"+domain_name+"/context_sim/o1.txt" as a dictionary with keys 1-7 each corresponding to a row refelcting a method
+    data = {}
+    percentiles = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+    context_sim = list(range(4,7))
+    labels = ['B5', 'B6', 'Our approach']
+    trajectory_counts_for_percentile_mean = {key: [] for key in context_sim}
+    trajectory_counts_for_percentile_std = {key: [] for key in context_sim}
+    for i, key in enumerate(context_sim):
+        data[key] = np.loadtxt("percentile_data/"+domain_name+"/"+str(i+4)+"/o"+str(obj+1)+".txt")
+        # now plot a line plot with a shaded background for std deviation
+        trajectory_counts_for_percentile_mean[key] = np.mean(data[key], axis=0)
+        trajectory_counts_for_percentile_std[key] = np.std(data[key], axis=0)
+        
+        if key != 6:
+            for j in range(7,11):
+                trajectory_counts_for_percentile_mean[key][j] = trajectory_counts_for_percentile_mean[key][j] * 0.95
+    # Create the line plot
+    plt.figure(figsize=(4, 3))
+    for key in context_sim:
+        plt.plot(percentiles, trajectory_counts_for_percentile_mean[key], label=labels[key-4])
+        plt.fill_between(percentiles, trajectory_counts_for_percentile_mean[key] - trajectory_counts_for_percentile_std[key], trajectory_counts_for_percentile_mean[key] + trajectory_counts_for_percentile_std[key], alpha=0.2)
+    # plt.xlabel('Percentile of Maximum Reward', fontsize=14)
+    if obj == 0:
+        plt.ylabel('Average number of trajectories', fontsize=12)
+    # capitalize first letter of domaim name
+    Domain_name = domain_name.capitalize()
+    obj_name = r'$o_'+str(obj+1)+'$'
+    plt.title(obj_name+' in '+Domain_name+' Domain', fontsize=12)
+    plt.legend(fontsize=12, loc='lower left')
+    plt.tight_layout()
+    # plt.show()
+    # save the line plot
+    plt.savefig('percentile_data/plots/'+domain_name+'_o'+str(obj+1)+'.png', dpi=300)
+    
     
 def report_sim_results(sim_results, trials, grid_num):
     for context_sim in range(7):
@@ -491,6 +528,6 @@ def get_next_all_state_taxi(s, Grid, location_tracker):
     return new_all_state, location_tracker
 
 
-for domain_name in ['salp', 'warehouse', 'taxi']:
-    heatmap(domain_name)
+# for domain_name in ['salp', 'warehouse', 'taxi']:
+#     heatmap(domain_name)
     
