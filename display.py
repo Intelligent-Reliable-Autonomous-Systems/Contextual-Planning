@@ -8,52 +8,100 @@ import matplotlib.image as mpimg
 from PIL import Image
 import seaborn as sns
 def heatmap(domain_name):
-    # read data from file "sim_results/"+domain_name+"/means.txt" as a dictionary with keys 1-7 each corresponding to a row refelcting a method
+    # Read data from file
     data = {}
-    keys = ['B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'Our\napproach']
-    with open("sim_results/"+domain_name+"/means.txt", "r") as file:
+    keys = ['B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'O1', 'O2']
+    with open("sim_results/" + domain_name + "/mean_values_all_objectives.txt", "r") as file:
         for i, line in enumerate(file):
             data[keys[i]] = list(map(int, line.strip().split()))
-    # Max possible values for each objective (as given by you)
-    max_values = {'o_1': 76, 'o_2': 100, 'o_3': 100}
 
-    # Normalize the data (each value divided by the max possible value for that objective)
+    # Max possible values for each objective
+    max_values = {'o_1': 78, 'o_2': 95, 'o_3': 100}
+
+    # Normalize the data
     normalized_data = {}
     for method, scores in data.items():
         normalized_data[method] = [
-            scores[0] / max_values['o_1'],  # normalize o_1
-            scores[1] / max_values['o_2'],  # normalize o_2
-            scores[2] / max_values['o_3']   # normalize o_3
+            scores[0] / max_values['o_1'],
+            scores[1] / max_values['o_2'],
+            scores[2] / max_values['o_3']
         ]
 
-    # Convert the normalized data into a matrix (list of lists)
+    # Convert the normalized data into a matrix
     heatmap_data = np.array(list(normalized_data.values()))
-    # Transpose the data to switch rows and columns
-    heatmap_data = heatmap_data.T  # This switches the rows and columns
-    # Define the labels for the heatmap (rows as methods, columns as objectives)
+    heatmap_data = heatmap_data.T
+
+    # Define the labels for the heatmap
     methods = list(normalized_data.keys())
     objectives = [r'$o_1$', r'$o_2$', r'$o_3$']
 
     # Create the heatmap
-    plt.figure(figsize=(5, 2.2))
-    ax = sns.heatmap(heatmap_data, annot=True,cmap="YlOrRd", xticklabels=methods, 
-                     yticklabels=objectives, cbar_kws={'label': 'Normalized Reward'}, 
-                     annot_kws={"size": 12})
+    plt.figure(figsize=(5, 1.8))
+    ax = sns.heatmap(heatmap_data, annot=True, cmap="YlOrRd",
+                     xticklabels=methods,
+                     yticklabels=objectives, cbar_kws={'label': 'Normalized Reward'},
+                     annot_kws={"size": 13})
 
     # Customize the colorbar label size
     cbar = ax.collections[0].colorbar
-    cbar.ax.yaxis.label.set_size(14)
-    # Customize the heatmap
-    # ax.set_title('Normalized Performance in Objectives in '+domain_name+' Domain', fontsize=14)
+    cbar.ax.yaxis.label.set_size(13)
     plt.ylabel('Objectives', fontsize=14)
-    # plt.xlabel('Methods', fontsize=14)
-    ax.xaxis.set_tick_params(rotation=0, labelsize=14)
+
+    # Set x-tick labels to be bold for O1 and O2
+    labels = [method if method not in ['O1', 'O2'] else f'$\mathbf{{{method}}}$' for method in methods]
+    ax.set_xticklabels(labels, fontsize=14)
+
+    ax.xaxis.set_tick_params(rotation=0)
     ax.yaxis.set_tick_params(rotation=0, labelsize=14)
-    plt.tight_layout(pad=0) 
+    plt.tight_layout(pad=0)
     # plt.show()
     # save the heatmap
     plt.savefig('sim_results/'+domain_name+'/'+domain_name+'_performance_heatmap.png', dpi=300)
     
+def min_percentile_consistency_plot(domain_min_percentile_means, domain_min_percentile_stds):
+    '''Plots the minimum percentile consistency plot for each domain.
+    params:
+        domain_dict_for_performances: a dictionary containing the performances of each method for each domain
+                                        {'salp': [min%-tile B1,...,min%-tile Our approach],
+                                         'taxi': [min%-tile B1,...,min%-tile Our approach],
+                                         'warehouse': [min%-tile B1,...,min%-tile Our approach]}
+    output:
+        plots the minimum percentile consistency scatter plot with percentile on y-axis and domain on x-axis
+    '''
+    # Create the scatter plot with [salp, warehouse, taxi] on x-axis and min%-tile on y-axis
+    # the scatten on each x-axis point should be the min%-tile of each method for B1, B2, B3, B4, B5, B6, Our approach that will be the scatter labels
+    techniques = ['B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'Our approach 1', 'Our approach 2']
+    plt.figure(figsize=(6, 5))
+    x_indices = np.array([0.5, 1, 1.5])
+    x_labels = ['Salp', 'Taxi', 'Warehouse']
+    for i, technique in enumerate(techniques):
+        # plot B1 for all domains in same color, then B2 for all domains in same color and so on, all with std I bars in black
+        y_values = [domain_min_percentile_means['salp'][i], domain_min_percentile_means['taxi'][i], domain_min_percentile_means['warehouse'][i]]
+        y_errors = [domain_min_percentile_stds['salp'][i], domain_min_percentile_stds['taxi'][i], domain_min_percentile_stds['warehouse'][i]]
+        if technique == 'Our approach 1':
+            # green star for our approach
+            plt.errorbar(x_indices, y_values, yerr=y_errors, fmt='g*', markersize=20, label=technique, capsize=5, capthick=1, elinewidth=1,ecolor='black')
+            # plt.scatter(x_indices, y_values,marker='*', c='g', s=200, label=technique)
+        elif technique == 'Our approach 2':
+            # green star for our approach
+            plt.errorbar(x_indices, y_values, yerr=y_errors, fmt='r*', markersize=20, label=technique, capsize=5, capthick=1, elinewidth=1,ecolor='black')
+            # plt.scatter(x_indices, y_values,marker='*', c='r', s=200, label=technique)
+        else:
+            plt.errorbar(x_indices, y_values, yerr=y_errors, fmt='o', markersize=10, label=technique, capsize=5, capthick=1, elinewidth=1,ecolor='black')
+            # plt.scatter(x_indices, y_values, label=technique, s=100)
+    plt.xticks(x_indices, x_labels, fontsize=18)
+    plt.yticks(fontsize=16)
+    plt.ylabel('Min. objective value percentile', fontsize=18)
+    # plt.title('Minimum Percentile Objective Value', fontsize=12)
+    # plt.legend(fontsize=12, bbox_to_anchor=(0.5, 0.5), ncol=2)
+    # plt.legend(fontsize=12, loc='upper center', bbox_to_anchor=(0.5, -0.5), ncol=4)
+    plt.xlim([0.25, 1.75])
+    plt.ylim(30, 90)
+    plt.tight_layout()
+    # plt.show()
+    # save the scatter plot
+    plt.savefig('sim_results/percentile_consistency.png', dpi=300)
+    # now save legend as a separate image with 4 cols and 2 rows
 def percentile_trajectories(domain_name, obj):
     # read data from file "percentile_data/"+domain_name+"/context_sim/o1.txt" as a dictionary with keys 1-7 each corresponding to a row refelcting a method
     data = {}

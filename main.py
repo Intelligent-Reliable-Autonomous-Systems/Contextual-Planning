@@ -10,7 +10,7 @@ for domain in ['salp', 'warehouse', 'taxi']:
     savenames = {   0: 'Task only',
                     1: 'Single Preference (Meta-ordering)', 
                     2: 'Scalarization Single Preference (Meta-ordering)',
-                    3: 'Scalarization Contextual Preferences',
+                    3: 'LMDP (Wray et al. 2015)',
                     4: 'Yang et al. (2019)', 
                     5: 'Contextual Approach without Conflict Resolution',
                     6: 'Contextual Approach with Conflict Resolution'}
@@ -20,7 +20,7 @@ for domain in ['salp', 'warehouse', 'taxi']:
     R3_means_over_grids = [[] for _ in range(7)]
     reached_goal_percentage_over_grids = [[] for _ in range(7)]
     percentile_stats = {i:{'mean': [], 'std': []} for i in range(len(savenames.keys()))}
-    for context_sim in range(7):
+    for context_sim in range(3,4):
         trajectories_o1, trajectories_o2, trajectories_o3 = [], [], []
         for grid_num in range(5):
             if domain == 'salp':

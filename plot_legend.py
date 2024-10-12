@@ -5,14 +5,15 @@ def create_barplot_legend_image():
     # Define labels for the legend
     labels = [
         'Task only', 
-        'Single preference ordering', 
-        'Single preference scalarization',
-        'Contextual preference scalarization',
+        'LMDP using '+r'$\Omega$', 
+        'Scalarization using '+r'$\Omega$',
+        'LMDP for contexts',
         'Yang et al. (2019)', 
-        'Contextual approach w/o resolver', 
-        'Contextual approach w/ resolver'
+        'Contextual planning w/o resolver', # Contextual Planning for Multi-Objective Reinforcement Learning
+        'Contextual planning w/ resolver (Our Approach 1)',
+        'Contextual planning w/ resolver w/ learned '+r'$\mathcal{Z}$' + ' (Our Approach 2)'
     ]
-    keys = ['B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'Our approach']
+    keys = ['B1', 'B2', 'B3', 'B4', 'B5', 'B6', r'$\mathbf{O1}$', r'$\mathbf{O2}$']
 
     # Create a figure for the legend
     fig, ax = plt.subplots(figsize=(8, 2))  # Adjust figsize to control image size
@@ -35,8 +36,8 @@ def create_barplot_legend_image():
     )
 
     # Remove extra padding by not using tight_layout and setting bbox_inches to 'tight'
-    plt.savefig('custom_legend_image_no_padding.png', bbox_inches='tight', dpi=300)
+    plt.savefig('heatmap_legend.png', bbox_inches='tight', dpi=300)
     # plt.show()
 
-# Call the function to create and save the legend image
+# Example call to the function
 create_barplot_legend_image()

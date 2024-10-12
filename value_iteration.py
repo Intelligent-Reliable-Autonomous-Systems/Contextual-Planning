@@ -67,13 +67,16 @@ def Q_value_iteration(agent, Reward):
         iter += 1
     return Q
 
-def action_set_value_iteration(agent, Reward):
+def action_set_value_iteration(agent, Reward, Vo=None):
     '''
     returns the agent with a pruned action set based on all optimal policy space of for provided Reward function R(s,a).
     '''
     S = agent.S
     A = agent.A
-    V = {s: 0 for s in S}
+    if Vo is not None:
+        V = Vo
+    else:
+        V = {s: 0 for s in S}
     Pi = {s: None for s in S}
     gamma = 0.99
     residual = {s: 0 for s in S}
@@ -127,7 +130,28 @@ def lexicographic_value_iteration(agent, ordering, context= None):
         Reward = agent.Grid.R_obs[ordering[-1]]
     print('\t\tComputing policy for '+ simple_colors.yellow('objective' + ': ' + str(ordering[-1]) + ' (' + agent.Grid.objective_names[ordering[-1]] + ')'))
     V, Pi = value_iteration(agent, Reward)
+
     return agent, Pi
+
+def LMDP_LVI(agent, ordering, Vo=None):
+    '''
+    params:
+    agent: agent object
+    ordering: list of objectives in the order of priority
+    '''
+    for obj in ordering[:-1]:
+        print('\t\tComputing policy for '+ simple_colors.yellow('objective' + ': ' + str(obj) + ' (' + agent.Grid.objective_names[obj] + ')'))
+        Reward = agent.Grid.R_obs[obj]
+        if Vo is not None:
+            agent = action_set_value_iteration(agent, Reward, Vo)
+        else:
+            agent = action_set_value_iteration(agent, Reward)
+    
+    Reward = agent.Grid.R_obs[ordering[-1]]
+    print('\t\tComputing policy for '+ simple_colors.yellow('objective' + ': ' + str(ordering[-1]) + ' (' + agent.Grid.objective_names[ordering[-1]] + ')'))
+    V, Pi = value_iteration(agent, Reward)
+
+    return V, Pi
     
 def scalarized_value_iteration(agent, ordering):
     '''
@@ -262,3 +286,26 @@ def labeled_RTDP(agent, Pi_G, Reward):
         iter += 1
     return V
             
+def LMDP(agent):
+    ''' sequentially computing and fixing contexts policies from \Omega going highest to lowest priority'''
+    A = copy.deepcopy(agent.A_initial)
+    PI = copy.deepcopy(agent.PI)  # dictionary mapping each context to it's policy over entire state space
+    Pi_G = {s: None for s in agent.S}
+    Grid = agent.Grid
+    state2context_map = Grid.state2context_map  # dictionary mapping each state to a context
+    context2state_map = Grid.context2state_map  # dictionary mapping each context to a list of states
+    
+    Contexts = Grid.Contexts  # list of contexts
+    OMEGA = Grid.OMEGA  # meta-ordering over "contexts" as a list in order of decreasing priority: [2,3,1] = 2 > 3 > 1 
+    V = {s: 0 for s in agent.S}
+    
+    print('LMDP context update order: ', OMEGA)
+    for c in OMEGA:
+        print('\tComputing LMDP policy for context: ', c)
+        V, PI[c] = LMDP_LVI(agent, [c])
+        for s in context2state_map[c]:
+            a = PI[c][s]
+            Pi_G[s] = a
+    
+    agent.Pi_G = Pi_G
+    return agent, Pi_G

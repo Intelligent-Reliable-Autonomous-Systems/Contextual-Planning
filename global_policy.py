@@ -6,7 +6,7 @@ import metareasoner as MR
 savenames = {   0: 'Task only',
                 1: 'Single Preference (Meta-ordering)', 
                 2: 'Scalarization Single Preference (Meta-ordering)',
-                3: 'Scalarization Contextual Preferences',
+                3: 'Wrays et al. (2015)',
                 4: 'Contextual Scalarization DNN', 
                 5: 'Contextual Approach without Conflict Resolution',
                 6: 'Contextual Approach with Conflict Resolution'}
@@ -25,7 +25,7 @@ def get_global_policy(agent, context_sim):
     if context_sim == 2:
         agent, Pi_G = value_iteration.scalarized_value_iteration(agent,agent.Grid.f_w(agent.Grid.OMEGA[0]))
     elif context_sim == 3:
-        agent, Pi_G = value_iteration.contextual_scalarized_value_iteration(agent)
+        agent, Pi_G = value_iteration.LMDP(agent)
     elif context_sim == 4:
         agent, Pi_G = agent.get_contextual_scalarized_dnn_policy()
     elif context_sim == 5:
