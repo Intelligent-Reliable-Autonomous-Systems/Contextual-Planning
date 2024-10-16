@@ -54,6 +54,7 @@ def get_rollout(agent, Pi_G, context_sim, display_trajecotry=False):
     agent.reset()
     reached_goal = False
     agent.follow_policy_rollout(Pi_G)
+    conflict = MR.conflict_checker(Pi_G, agent)
     if display_trajecotry:
         print(simple_colors.yellow('Trajectory for '+savenames[context_sim]+':', ['bold']))
         for i in range(len(agent.trajectory)):
@@ -66,7 +67,7 @@ def get_rollout(agent, Pi_G, context_sim, display_trajecotry=False):
         reached_goal = False
         r1, r2, r3 = 0, 0, 0
         # print(simple_colors.red(savenames[context_sim]+' did not reach the goal!', ['bold']))
-    return r1, r2, r3, reached_goal
+    return r1, r2, r3, reached_goal, conflict
 
 def get_multiple_rollout_states(agent, Pi_G, context_sim, trials, display_trajectory=False):
     '''Get the rollout stats for the agent for a given context simulation for multiple trials
@@ -77,14 +78,17 @@ def get_multiple_rollout_states(agent, Pi_G, context_sim, trials, display_trajec
     max_values = {'o_1': 76, 'o_2': 100, 'o_3': 100}
     percentile_trajectories_for_objs = {i:[] for i in [0,1,2]} # to record the number of times the agent reached a certain percentile of the maximum value as an objective based dict percentile_traj[o1] = [...]
     reached_goal_counter = 0
+    conflict_counter = 0
     for rollout in range(trials):
-        r1, r2, r3, reached_goal = get_rollout(agent, Pi_G, context_sim, display_trajectory)
+        r1, r2, r3, reached_goal, conflict = get_rollout(agent, Pi_G, context_sim, display_trajectory)
         if reached_goal:
             reached_goal_counter += 1
+            conflict_counter += int(conflict)
             R1.append(r1)
             R2.append(r2)
             R3.append(r3)
         else:
+            conflict_counter += int(conflict)            
             R1.append(0)
             R2.append(0)
             R3.append(0)
@@ -97,7 +101,7 @@ def get_multiple_rollout_states(agent, Pi_G, context_sim, trials, display_trajec
         percentile_trajectories_for_objs[1].append(sum([int(R2[j] > i*max_values['o_2']/100) for j in range(len(R2))]))
         percentile_trajectories_for_objs[2].append(sum([int(R3[j] > i*max_values['o_3']/100) for j in range(len(R3))]))
         
-    return R1_stats, R2_stats, R3_stats, round(reached_goal_counter/ trials * 100, 1), percentile_trajectories_for_objs
+    return R1_stats, R2_stats, R3_stats, round(reached_goal_counter/ trials * 100, 1), round(conflict_counter/ trials * 100, 1), percentile_trajectories_for_objs
 
 def visualize_global_policy(domain, agent, Pi_G, context_sim):
     '''Visualize the global policy for the agent for a given context simulation

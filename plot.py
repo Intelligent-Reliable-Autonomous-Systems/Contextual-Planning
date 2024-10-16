@@ -32,5 +32,5 @@ def plot_min_percentile_for_all_domains():
         
      
 # plot_percentile_trajectories()
-plot_heatmaps()
-# plot_min_percentile_for_all_domains()
+# plot_heatmaps()
+plot_min_percentile_for_all_domains()

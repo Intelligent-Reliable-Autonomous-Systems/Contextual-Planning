@@ -152,7 +152,10 @@ class SalpEnvironment:
     
     def step(self, s, a):
         # state of an agent: <x,y,sample_status,coral_flag,eddy>
-        # operation actions = ['Noop','pick', 'drop', 'U', 'D', 'L', 'R']
+        actions = ['Noop','pick', 'drop', 'U', 'D', 'L', 'R']
+        if a not in actions:
+            print("Invalid action")
+            exit(0)
         s = list(s)
         if a == 'pick':
             if self.All_States[s[0]][s[1]] == 'B':
@@ -404,10 +407,10 @@ class SalpAgent:
             T = {self.step(s, a): 1}  # (same: 0.2, next: 0.8)
         # create conlficting transitions by removing stochastic slides for certain states manually 
         # but not changing the optimal policy
-        # if s == (3, 2, 'P', True, False) and (a == 'U' or a == 'D' or a == 'L' or a == 'R'):
-        #     T = {self.move_correctly(self.Grid, s, a): 1}
-        # if s == (3, 1, 'P', False, False) and (a == 'U' or a == 'D' or a == 'L' or a == 'R'):
-        #     T = {self.move_correctly(self.Grid, s, a): 1}
+        if s == (3, 2, 'P', True, False) and (a == 'U' or a == 'D' or a == 'L' or a == 'R'):
+            T = {self.move_correctly(self.Grid, s, a): 1}
+        if s == (3, 1, 'P', False, False) and (a == 'U' or a == 'D' or a == 'L' or a == 'R'):
+            T = {self.move_correctly(self.Grid, s, a): 1}
         return T
 
     def move_correctly(self, Grid, s, a):

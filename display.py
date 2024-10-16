@@ -39,8 +39,8 @@ def heatmap(domain_name):
     plt.figure(figsize=(5, 1.8))
     ax = sns.heatmap(heatmap_data, annot=True, cmap="YlOrRd",
                      xticklabels=methods,
-                     yticklabels=objectives, cbar_kws={'label': 'Normalized Reward'},
-                     annot_kws={"size": 13})
+                     yticklabels=objectives, cbar_kws={'label': 'Normalized Value'},
+                     annot_kws={"size": 12.5})
 
     # Customize the colorbar label size
     cbar = ax.collections[0].colorbar
@@ -71,6 +71,17 @@ def min_percentile_consistency_plot(domain_min_percentile_means, domain_min_perc
     # Create the scatter plot with [salp, warehouse, taxi] on x-axis and min%-tile on y-axis
     # the scatten on each x-axis point should be the min%-tile of each method for B1, B2, B3, B4, B5, B6, Our approach that will be the scatter labels
     techniques = ['B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'Our approach 1', 'Our approach 2']
+    names = [
+        'Task only', 
+        'LMDP using '+r'$\Omega$', 
+        'Scalarization using '+r'$\Omega$',
+        'LMDP for contexts',
+        'Yang et al. (2019)', 
+        'Contextual planning w/o resolver', # Contextual Planning for Multi-Objective Reinforcement Learning
+        'Our approach 1: Contextual planning w/ resolver',
+        'Our approach 2: Contextual planning w/ resolver & learned '+r'$\mathcal{Z}$'
+    ]
+    colors = ['b', 'darkred', 'c', 'm', 'y', 'k'] 
     plt.figure(figsize=(6, 5))
     x_indices = np.array([0.5, 1, 1.5])
     x_labels = ['Salp', 'Taxi', 'Warehouse']
@@ -81,27 +92,27 @@ def min_percentile_consistency_plot(domain_min_percentile_means, domain_min_perc
         if technique == 'Our approach 1':
             # green star for our approach
             plt.errorbar(x_indices, y_values, yerr=y_errors, fmt='g*', markersize=20, label=technique, capsize=5, capthick=1, elinewidth=1,ecolor='black')
-            # plt.scatter(x_indices, y_values,marker='*', c='g', s=200, label=technique)
+            # plt.scatter(x_indices, y_values,marker='*', c='g', s=200, label=names[i])
         elif technique == 'Our approach 2':
             # green star for our approach
             plt.errorbar(x_indices, y_values, yerr=y_errors, fmt='r*', markersize=20, label=technique, capsize=5, capthick=1, elinewidth=1,ecolor='black')
-            # plt.scatter(x_indices, y_values,marker='*', c='r', s=200, label=technique)
+            # plt.scatter(x_indices, y_values,marker='*', c='r', s=200, label=names[i])
         else:
-            plt.errorbar(x_indices, y_values, yerr=y_errors, fmt='o', markersize=10, label=technique, capsize=5, capthick=1, elinewidth=1,ecolor='black')
-            # plt.scatter(x_indices, y_values, label=technique, s=100)
+            plt.errorbar(x_indices, y_values, yerr=y_errors, fmt='o', color= colors[i], markersize=10, label=technique, capsize=5, capthick=1, elinewidth=1,ecolor='black')
+            # plt.scatter(x_indices, y_values, label=names[i], s=100, c=colors[i])
     plt.xticks(x_indices, x_labels, fontsize=18)
     plt.yticks(fontsize=16)
-    plt.ylabel('Min. objective value percentile', fontsize=18)
+    plt.ylabel('Minimum objective value', fontsize=18)
     # plt.title('Minimum Percentile Objective Value', fontsize=12)
     # plt.legend(fontsize=12, bbox_to_anchor=(0.5, 0.5), ncol=2)
-    # plt.legend(fontsize=12, loc='upper center', bbox_to_anchor=(0.5, -0.5), ncol=4)
+    # plt.legend(fontsize=12, loc='upper center', bbox_to_anchor=(0.5, -0.5), ncol=1)
     plt.xlim([0.25, 1.75])
     plt.ylim(30, 90)
     plt.tight_layout()
     # plt.show()
     # save the scatter plot
     plt.savefig('sim_results/percentile_consistency.png', dpi=300)
-    # now save legend as a separate image with 4 cols and 2 rows
+    # now save legend as a separate image with 4 cols and 2 rows 
 def percentile_trajectories(domain_name, obj):
     # read data from file "percentile_data/"+domain_name+"/context_sim/o1.txt" as a dictionary with keys 1-7 each corresponding to a row refelcting a method
     data = {}
@@ -150,12 +161,13 @@ def report_sim_results(sim_results, trials, grid_num):
         
 def report_sim_results_over_grids_and_trails(sim_results_over_grids, trials):
     for context_sim in range(7):
-        sim_names, R1_stats, R2_stats, R3_stats, reached_goal_percentage = sim_results_over_grids
+        sim_names, R1_stats, R2_stats, R3_stats, reached_goal_percentage, conflict_percentage = sim_results_over_grids
         print(simple_colors.yellow('Results for '+ sim_names[context_sim] + ' [over '+str(trials)+' over '+str(len(R1_stats[context_sim]))+' grids (15x15)]:', ['bold', 'underlined']))
-        print(simple_colors.cyan('Objective 1:', ['bold']), np.mean(R1_stats[context_sim]))
-        print(simple_colors.cyan('Objective 2:', ['bold']), np.mean(R2_stats[context_sim]))
-        print(simple_colors.cyan('Objective 3:', ['bold']), np.mean(R3_stats[context_sim]))
-        print(simple_colors.cyan('Reached Goal:', ['bold']), np.mean(reached_goal_percentage[context_sim]), '% times.')
+        print(simple_colors.cyan('Objective 1:', ['bold']), np.mean(R1_stats[context_sim]), '±', np.std(R1_stats[context_sim]))
+        print(simple_colors.cyan('Objective 2:', ['bold']), np.mean(R2_stats[context_sim]), '±', np.std(R2_stats[context_sim]))
+        print(simple_colors.cyan('Objective 3:', ['bold']), np.mean(R3_stats[context_sim]), '±', np.std(R3_stats[context_sim]))
+        print(simple_colors.cyan('Reached Goal:', ['bold']), np.mean(reached_goal_percentage[context_sim]),'±', np.std(reached_goal_percentage[context_sim]), '% times.')
+        print(simple_colors.cyan('Conflict:', ['bold']), np.mean(conflict_percentage[context_sim]),'±', np.std(conflict_percentage[context_sim]), '% times.')
         print()
         
 def display_animation(frames, savename='animation', fps=4):

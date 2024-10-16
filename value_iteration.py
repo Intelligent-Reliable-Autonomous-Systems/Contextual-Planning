@@ -302,10 +302,13 @@ def LMDP(agent):
     print('LMDP context update order: ', OMEGA)
     for c in OMEGA:
         print('\tComputing LMDP policy for context: ', c)
+        # print(agent.A.values())
         V, PI[c] = LMDP_LVI(agent, [c])
         for s in context2state_map[c]:
-            a = PI[c][s]
-            Pi_G[s] = a
+            Pi_G[s] = PI[c][s]
+            # agent.A[s] = [Pi_G[s]]
+            # print('\t\tState: ', s, 'Action: ', PI[c][s])
+        # exit(0)
     
     agent.Pi_G = Pi_G
     return agent, Pi_G
