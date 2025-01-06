@@ -11,7 +11,7 @@ def create_barplot_legend_image():
         'Yang et al. (2019)', 
         'Contextual planning w/o resolver', # Contextual Planning for Multi-Objective Reinforcement Learning
         'Contextual planning w/ resolver (Our Approach 1)',
-        'Contextual planning w/ resolver w/ learned '+r'$\mathcal{Z}$' + ' (Our Approach 2)'
+        'Contextual planning w/ resolver & learned '+r'$\mathcal{Z}$' + ' (Our Approach 2)'
     ]
     keys = ['B1', 'B2', 'B3', 'B4', 'B5', 'B6', r'$\mathbf{O1}$', r'$\mathbf{O2}$']
 

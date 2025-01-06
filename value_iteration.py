@@ -306,7 +306,7 @@ def LMDP(agent):
         V, PI[c] = LMDP_LVI(agent, [c])
         for s in context2state_map[c]:
             Pi_G[s] = PI[c][s]
-            # agent.A[s] = [Pi_G[s]]
+            agent.A[s] = [Pi_G[s]]
             # print('\t\tState: ', s, 'Action: ', PI[c][s])
         # exit(0)
     

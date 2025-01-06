@@ -81,6 +81,8 @@ def min_percentile_consistency_plot(domain_min_percentile_means, domain_min_perc
         'Our approach 1: Contextual planning w/ resolver',
         'Our approach 2: Contextual planning w/ resolver & learned '+r'$\mathcal{Z}$'
     ]
+    names = ['B1', 'B2', 'B3', 'B4', 'B5', 'B6', r'$\mathbf{O1}$', r'$\mathbf{O2}$']
+    
     colors = ['b', 'darkred', 'c', 'm', 'y', 'k'] 
     plt.figure(figsize=(6, 5))
     x_indices = np.array([0.5, 1, 1.5])
@@ -91,23 +93,23 @@ def min_percentile_consistency_plot(domain_min_percentile_means, domain_min_perc
         y_errors = [domain_min_percentile_stds['salp'][i], domain_min_percentile_stds['taxi'][i], domain_min_percentile_stds['warehouse'][i]]
         if technique == 'Our approach 1':
             # green star for our approach
-            plt.errorbar(x_indices, y_values, yerr=y_errors, fmt='g*', markersize=20, label=technique, capsize=5, capthick=1, elinewidth=1,ecolor='black')
+            plt.errorbar(x_indices, y_values, yerr=y_errors, fmt='g*', markersize=25, label=technique, capsize=5, capthick=1, elinewidth=1,ecolor='black')
             # plt.scatter(x_indices, y_values,marker='*', c='g', s=200, label=names[i])
         elif technique == 'Our approach 2':
             # green star for our approach
-            plt.errorbar(x_indices, y_values, yerr=y_errors, fmt='r*', markersize=20, label=technique, capsize=5, capthick=1, elinewidth=1,ecolor='black')
+            plt.errorbar(x_indices, y_values, yerr=y_errors, fmt='r*', markersize=25, label=technique, capsize=5, capthick=1, elinewidth=1,ecolor='black')
             # plt.scatter(x_indices, y_values,marker='*', c='r', s=200, label=names[i])
         else:
-            plt.errorbar(x_indices, y_values, yerr=y_errors, fmt='o', color= colors[i], markersize=10, label=technique, capsize=5, capthick=1, elinewidth=1,ecolor='black')
+            plt.errorbar(x_indices, y_values, yerr=y_errors, fmt='o', markersize=10, color= colors[i], label=technique, capsize=5, capthick=1, elinewidth=1,ecolor='black')
             # plt.scatter(x_indices, y_values, label=names[i], s=100, c=colors[i])
-    plt.xticks(x_indices, x_labels, fontsize=18)
-    plt.yticks(fontsize=16)
-    plt.ylabel('Minimum objective value', fontsize=18)
+    plt.xticks(x_indices, x_labels, fontsize=20)
+    plt.yticks(fontsize=18)
+    plt.ylabel('Minimum objective value', fontsize=20)
     # plt.title('Minimum Percentile Objective Value', fontsize=12)
     # plt.legend(fontsize=12, bbox_to_anchor=(0.5, 0.5), ncol=2)
-    # plt.legend(fontsize=12, loc='upper center', bbox_to_anchor=(0.5, -0.5), ncol=1)
+    # plt.legend(fontsize=12, loc='upper center', bbox_to_anchor=(0.5, -0.5), ncol=4)
     plt.xlim([0.25, 1.75])
-    plt.ylim(30, 90)
+    plt.ylim(35, 90)
     plt.tight_layout()
     # plt.show()
     # save the scatter plot

@@ -21,7 +21,7 @@ for domain in ['salp']:#, 'warehouse', 'taxi']:
     reached_goal_percentage_over_grids = [[] for _ in range(7)]
     conflict_percentage_over_grids = [[] for _ in range(7)]
     percentile_stats = {i:{'mean': [], 'std': []} for i in range(len(savenames.keys()))}
-    for context_sim in range(3,7):
+    for context_sim in range(3,4):
         trajectories_o1, trajectories_o2, trajectories_o3 = [], [], []
         for grid_num in range(1):
             if domain == 'salp':
@@ -43,6 +43,8 @@ for domain in ['salp']:#, 'warehouse', 'taxi']:
             
             print(simple_colors.cyan('Context Simulation: ' + savenames[context_sim], ['bold', 'underlined']))
             agent, Pi_G = global_policy.get_global_policy(agent, context_sim)
+            agent.get_trajectory()
+            Traj = agent.trajectory
             R1_stats, R2_stats, R3_stats, reached_goal_percentage, conflict_percentage, percentile_trajectories_for_objs = global_policy.get_multiple_rollout_states(agent, Pi_G, context_sim, trials)
             sim_results[context_sim] = [savenames[context_sim], R1_stats, R2_stats, R3_stats, reached_goal_percentage]
             R1_means_over_grids[context_sim].append(R1_stats[0])
@@ -61,5 +63,7 @@ for domain in ['salp']:#, 'warehouse', 'taxi']:
         # np.savetxt('percentile_data/'+domain+'/'+str(context_sim)+'/o3.txt', trajectories_o3, fmt='%d')
     print(simple_colors.green('Simulation completed!', ['bold', 'underlined']))
     display.report_sim_results_over_grids_and_trails([savenames, R1_means_over_grids, R2_means_over_grids, R3_means_over_grids, reached_goal_percentage_over_grids,conflict_percentage_over_grids], trials)    
+    for tau in Traj:
+        print(tau)
     wait = input("Press Enter to continue...")
     

@@ -343,7 +343,7 @@ class SalpAgent:
                                     self.Grid.state2context_map[s]))
             self.s = self.sample_state(s, a)  # self.step(self.s, Pi[self.s])
             # if s is stuck in a loop or not making progress, break
-            if len(self.trajectory) > 100:
+            if len(self.trajectory) > 20:
                 if self.trajectory[-1] == self.trajectory[-5]:
                     print("Agent " + str(self.label) + " is stuck in a loop at s = "+str(self.s)+"!")
                     break
