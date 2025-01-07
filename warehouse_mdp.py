@@ -12,14 +12,14 @@ class WarehouseEnvironment:
     def __init__(self, filename, context_sim):
         self.OMEGA = [1, 2, 0]  # meta ordering over contexts c1 > c2 > c0
         # currently setup as ordering for context i = context_ordering[i]   
-        context_ordering = {0: [[0, 0, 0], [0, 0, 0], [0, 0, 0]],  # not invoked just to show
-                            1: [[0, 1, 2], [0, 1, 2], [0, 1, 2]],  # not invoked just to show
-                            2: [[0, 1, 2], [0, 1, 2], [0, 1, 2]],  # not invoked just to show
-                            3: [[0, 1, 2], [1, 0, 2], [2, 0, 1]],   
-                            4: [[0, 1, 2], [1, 0, 2], [2, 0, 1]],  
-                            5: [[0, 1, 2], [1, 0, 2], [2, 0, 1]],  
-                            6: [[0, 1, 2], [1, 0, 2], [2, 0, 1]],  
-                            7: [[0, 1, 2], [1, 0, 2], [2, 0, 1]],} 
+        context_ordering = {0: [[0, 0, 0], [0, 0, 0], [0, 0, 0]],  # 'Task only'
+                            1: [[0, 1, 2], [0, 1, 2], [0, 1, 2]],  # 'LMDP using Omega'
+                            2: [[0, 1, 2], [0, 1, 2], [0, 1, 2]],  # 'Scalarization using Omega'
+                            3: [[0, 1, 2], [1, 0, 2], [2, 0, 1]],  # 'LMDP for Contexts'
+                            4: [[0, 1, 2], [1, 0, 2], [2, 0, 1]],  # 'Yang et al. (2019)'
+                            5: [[0, 1, 2], [1, 0, 2], [2, 0, 1]],  # 'Contextual Approach w/o resolver'
+                            6: [[0, 1, 2], [1, 0, 2], [2, 0, 1]],  # 'Contextual Approach w/ resolver (Our Approach 1)'
+                            7: [[0, 1, 2], [1, 0, 2], [2, 0, 1]],} # 'Contextual Approach w/ resolver & learned Z (Our Approach 2)'
         
         # Read the grid from the file and initialize the environment
         All_States, rows, columns = read_grid.grid_read_from_file(filename)
