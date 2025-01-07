@@ -6,7 +6,7 @@ from scm import *
 from bayes import get_context
 from pathlib import Path
 
-def run_context_infernce(domain, start_state='random', with_exp_traj=False):
+def get_context_from_inference(domain, start_state='random', with_exp_traj=False):
     test_filenames = [
                     'grids/'+domain+'/illustration0_15x15.txt',
                     'grids/'+domain+'/illustration1_15x15.txt',
@@ -20,10 +20,9 @@ def run_context_infernce(domain, start_state='random', with_exp_traj=False):
         if with_exp_traj==True:
             train_grid_idx = te_instance_idx
             train_env_file = 'grids/'+domain+'/illustration'+str(train_grid_idx)+'_15x15.txt'
-            tr_filename = 'context_inference/expert_trajectories_c6_5/'+domain+'/illustration'+str(train_grid_idx)+'_'+start_state+'_start_states.txt'
-            output_dir = 'context_inference/c6_5_output/'+start_state+'_start_illustation_all/'+domain+'/'
-            performance_filename = output_dir+'performance_results.csv'
-
+            tr_filename = 'expert_trajectories/'+domain+'/illustration'+str(train_grid_idx)+'_'+start_state+'_start_states.txt'
+            output_dir = 'context_inference/'+domain+'/'
+            
             if domain == 'salp':
                 tr_env = SalpEnvironment(train_env_file, context_sim=7)
                 tr_env_agent = SalpAgent(tr_env)
