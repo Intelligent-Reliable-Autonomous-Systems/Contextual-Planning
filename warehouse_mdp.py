@@ -15,10 +15,11 @@ class WarehouseEnvironment:
         context_ordering = {0: [[0, 0, 0], [0, 0, 0], [0, 0, 0]],  # not invoked just to show
                             1: [[0, 1, 2], [0, 1, 2], [0, 1, 2]],  # not invoked just to show
                             2: [[0, 1, 2], [0, 1, 2], [0, 1, 2]],  # not invoked just to show
-                            3: [[0, 1, 2], [1, 0, 2], [2, 0, 1]],    # [c0_ordering, c1_ordering, c2_ordering]
-                            4: [[0, 1, 2], [1, 0, 2], [2, 0, 1]],    # [c0_ordering, c1_ordering, c2_ordering]
-                            5: [[0, 1, 2], [1, 0, 2], [2, 0, 1]],    # [c0_ordering, c1_ordering, c2_ordering]
-                            6: [[0, 1, 2], [1, 0, 2], [2, 0, 1]],}   # [c0_ordering, c1_ordering, c2_ordering]
+                            3: [[0, 1, 2], [1, 0, 2], [2, 0, 1]],   
+                            4: [[0, 1, 2], [1, 0, 2], [2, 0, 1]],  
+                            5: [[0, 1, 2], [1, 0, 2], [2, 0, 1]],  
+                            6: [[0, 1, 2], [1, 0, 2], [2, 0, 1]],  
+                            7: [[0, 1, 2], [1, 0, 2], [2, 0, 1]],} 
         
         # Read the grid from the file and initialize the environment
         All_States, rows, columns = read_grid.grid_read_from_file(filename)
@@ -131,8 +132,7 @@ class WarehouseEnvironment:
     def R3_out_context(self, s, a):
         # Narrow corridor inconvenience draining (penalty)
         # s = (s[0]: x, s[1]: y, s[2]: package_status, s[3]: slippery_tile, s[4]: narrow_corridor)
-        s_next = self.step(s, a)  
-        # print("s_next: ", s_next)      
+        s_next = self.step(s, a)       
         if s_next[4] is True:
             R = -5
         else:

@@ -3,25 +3,27 @@ import global_policy
 import warnings
 warnings.filterwarnings('ignore')
 
-for domain  in ['salp']:#, 'warehouse', 'taxi']:
-    savenames = {   0: 'Task only',
-                    1: 'Single Preference (Meta-ordering)', 
-                    2: 'Scalarization Single Preference (Meta-ordering)',
-                    3: 'Scalarization Contextual Preferences',
-                    4: 'Yang et al. (2019)', 
-                    5: 'Contextual Approach without Conflict Resolution',
-                    6: 'Contextual Approach with Conflict Resolution'}
+for domain  in ['salp', 'warehouse', 'taxi']:
+    savenames ={0: 'Task only',
+                1: 'LMDP using Omega', 
+                2: 'Scalarization using Omega',
+                3: 'LMDP for Contexts',
+                4: 'Yang et al. (2019)', 
+                5: 'Contextual Approach w/o resolver',
+                6: 'Contextual Approach w/ resolver (Our Approach 1)',
+                7: 'Contextual Approach w/ resolver & learned Z (Our Approach 2)',}
+    
     sim_results = {}  # averaged over trials for each sim above 0-6
-    R1_means_over_grids = [[] for _ in range(7)]
-    R2_means_over_grids = [[] for _ in range(7)]
-    R3_means_over_grids = [[] for _ in range(7)]
-    reached_goal_percentage_over_grids = [[] for _ in range(7)]
-    for context_sim in range(7):
+    R1_means_over_grids = [[] for _ in range(8)]
+    R2_means_over_grids = [[] for _ in range(8)]
+    R3_means_over_grids = [[] for _ in range(8)]
+    reached_goal_percentage_over_grids = [[] for _ in range(8)]
+    for context_sim in range(8):
         if context_sim != 6:
             continue
         if domain == 'salp':
             from salp_mdp import SalpEnvironment, SalpAgent
-            Env = SalpEnvironment("grids/salp/illustration_6x6.txt", context_sim)
+            Env = SalpEnvironment("grids/salp/illustration0_15x15.txt", context_sim)
             agent = SalpAgent(Env)
         elif domain == 'warehouse':
             from warehouse_mdp import WarehouseEnvironment, WarehouseAgent
@@ -47,7 +49,7 @@ for domain  in ['salp']:#, 'warehouse', 'taxi']:
                 print('trajectory ',counter, 'added')
                 for data in trajectory:
                     Tau.append(data)
-        with open('expert_trajectories.txt', 'w') as file:
+        with open('trajectories/'+domain+'/expert_trajectories.txt', 'w') as file:
             file.write("State\tAction\tR1\tR2\tR3\tContext\n")  # Writing the header
             for data in Tau:
                 file.write("{} {} {} {} {} {}\n".format(data[0], data[1], data[2], data[3], data[4], data[5]))

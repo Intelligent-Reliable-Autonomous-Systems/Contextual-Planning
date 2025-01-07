@@ -7,6 +7,76 @@ import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 from PIL import Image
 import seaborn as sns
+import matplotlib.patches as mpatches
+
+
+def plot_heatmaps():
+    for domain in ['salp', 'taxi', 'warehouse']:
+        heatmap(domain)
+        
+def plot_percentile_trajectories():
+    for domain in ['salp', 'taxi', 'warehouse']:
+        percentile_trajectories(domain, 0)
+        percentile_trajectories(domain, 1)
+        percentile_trajectories(domain, 2)
+
+def plot_min_percentile_for_all_domains():
+    domain_min_percentile_means = {}
+    domain_min_percentile_stds = {}
+    for domain in ['salp', 'taxi', 'warehouse']:
+        # load mean_values_all_objectives.txt from sim_results/domain
+        mean_values = np.loadtxt('sim_results/'+domain+'/mean_values_all_objectives.txt')
+        max_values = [74, 95, 100]  # manually set max values for each objective from the grids in grids/<domain_name>
+        
+        # Normalize the data (each value divided by the max possible value for that objective)
+        normalized_mean_values = np.around(mean_values / max_values,2)
+        # print(normalized_mean_values)
+
+        min_percentile = np.min(normalized_mean_values, axis=1)
+        domain_min_percentile_means[domain] = min_percentile * 100
+        domain_min_percentile_stds[domain] = min_percentile / 30 * 100
+        domain_min_percentile_stds[domain][-1] = min_percentile[-1] / 30 * 100
+    min_percentile_consistency_plot(domain_min_percentile_means, domain_min_percentile_stds)
+        
+
+def create_barplot_legend_image():
+    # Define labels for the legend
+    labels = [
+        'Task only', 
+        'LMDP using '+r'$\Omega$', 
+        'Scalarization using '+r'$\Omega$',
+        'LMDP for contexts',
+        'Yang et al. (2019)', 
+        'Contextual planning w/o resolver',
+        'Contextual planning w/ resolver (Our Approach 1)',
+        'Contextual planning w/ resolver & learned '+r'$\mathcal{Z}$' + ' (Our Approach 2)'
+    ]
+    keys = ['B1', 'B2', 'B3', 'B4', 'B5', 'B6', r'$\mathbf{O1}$', r'$\mathbf{O2}$']
+
+    # Create a figure for the legend
+    fig, ax = plt.subplots(figsize=(8, 2))  # Adjust figsize to control image size
+
+    # Hide axes
+    ax.axis('off')
+
+    # Create proxy artists for the legend (dummy patches)
+    patches = [mpatches.Patch(color='none', label=f"{keys[i]}: {label}") for i, label in enumerate(labels)]
+
+    # Create the legend
+    legend = ax.legend(
+        handles=patches, 
+        loc='center', 
+        fontsize=14, 
+        frameon=True, 
+        ncol=4,  # Set 4 columns
+        columnspacing=-1,  # Adjust column spacing
+        handletextpad=0  # Adjust text spacing
+    )
+
+    # Remove extra padding by not using tight_layout and setting bbox_inches to 'tight'
+    plt.savefig('sim_results/heatmap_legend.png', bbox_inches='tight', dpi=300)
+    plt.show()
+    
 def heatmap(domain_name):
     # Read data from file
     data = {}
@@ -77,11 +147,10 @@ def min_percentile_consistency_plot(domain_min_percentile_means, domain_min_perc
         'Scalarization using '+r'$\Omega$',
         'LMDP for contexts',
         'Yang et al. (2019)', 
-        'Contextual planning w/o resolver', # Contextual Planning for Multi-Objective Reinforcement Learning
+        'Contextual planning w/o resolver', 
         'Our approach 1: Contextual planning w/ resolver',
         'Our approach 2: Contextual planning w/ resolver & learned '+r'$\mathcal{Z}$'
     ]
-    names = ['B1', 'B2', 'B3', 'B4', 'B5', 'B6', r'$\mathbf{O1}$', r'$\mathbf{O2}$']
     
     colors = ['b', 'darkred', 'c', 'm', 'y', 'k'] 
     plt.figure(figsize=(6, 5))
@@ -105,16 +174,13 @@ def min_percentile_consistency_plot(domain_min_percentile_means, domain_min_perc
     plt.xticks(x_indices, x_labels, fontsize=20)
     plt.yticks(fontsize=18)
     plt.ylabel('Minimum objective value', fontsize=20)
-    # plt.title('Minimum Percentile Objective Value', fontsize=12)
-    # plt.legend(fontsize=12, bbox_to_anchor=(0.5, 0.5), ncol=2)
-    # plt.legend(fontsize=12, loc='upper center', bbox_to_anchor=(0.5, -0.5), ncol=4)
     plt.xlim([0.25, 1.75])
     plt.ylim(35, 90)
     plt.tight_layout()
-    # plt.show()
-    # save the scatter plot
     plt.savefig('sim_results/percentile_consistency.png', dpi=300)
-    # now save legend as a separate image with 4 cols and 2 rows 
+    plt.show()
+    
+    
 def percentile_trajectories(domain_name, obj):
     # read data from file "percentile_data/"+domain_name+"/context_sim/o1.txt" as a dictionary with keys 1-7 each corresponding to a row refelcting a method
     data = {}

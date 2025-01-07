@@ -3,13 +3,14 @@ import value_iteration
 import simple_colors
 import metareasoner as MR
 
-savenames = {   0: 'Task only',
-                1: 'Single Preference (Meta-ordering)', 
-                2: 'Scalarization Single Preference (Meta-ordering)',
-                3: 'Wrays et al. (2015)',
-                4: 'Contextual Scalarization DNN', 
-                5: 'Contextual Approach without Conflict Resolution',
-                6: 'Contextual Approach with Conflict Resolution'}
+savenames ={0: 'Task only',
+            1: 'LMDP using Omega', 
+            2: 'Scalarization using Omega',
+            3: 'LMDP for Contexts',
+            4: 'Yang et al. (2019)', 
+            5: 'Contextual Approach w/o resolver',
+            6: 'Contextual Approach w/ resolver (Our Approach 1)',
+            7: 'Contextual Approach w/ resolver & learned Z (Our Approach 2)',}
 
 def get_global_policy(agent, context_sim):
     '''Get the global policy for the agent for a given context simulation
@@ -31,6 +32,8 @@ def get_global_policy(agent, context_sim):
     elif context_sim == 5:
         agent, Pi_G = value_iteration.contextual_lexicographic_value_iteration(agent)
     elif context_sim == 6:
+        agent, Pi_G = value_iteration.contextual_lexicographic_value_iteration(agent)
+    elif context_sim == 7:
         agent, Pi_G = value_iteration.contextual_lexicographic_value_iteration(agent)
     agent.Pi_G = Pi_G
     conflict = MR.conflict_checker(Pi_G, agent)
@@ -108,14 +111,14 @@ def visualize_global_policy(domain, agent, Pi_G, context_sim):
     1. Visualize the global policy for the agent for the given context simulation
     '''
     import display
-    savenames = {0: 'Task only',
-                1: 'Task > NSE Mitigation', 
-                2: 'NSE Mitigation > Task', 
-                3: 'Scalarization Single Preference',
-                4: 'Scalarization Contextual Preferences',
-                5: 'Contextual Scalarization DNN', 
-                6: 'Contextual Approach without Conflict Resolution',
-                7: 'Contextual Approach with Conflict Resolution'}
+    savenames ={0: 'Task only',
+                1: 'LMDP using Omega', 
+                2: 'Scalarization using Omega',
+                3: 'LMDP for Contexts',
+                4: 'Yang et al. (2019)', 
+                5: 'Contextual Approach w/o resolver',
+                6: 'Contextual Approach w/ resolver (Our Approach 1)',
+                7: 'Contextual Approach w/ resolver & learned Z (Our Approach 2)',}
     if domain == 'salp':
         display.animate_policy_salp(agent, Pi_G, savenames[context_sim], stochastic_transition=False)#, savenames[context_sim]) 
     elif domain == 'warehouse':
