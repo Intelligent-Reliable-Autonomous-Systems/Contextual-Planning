@@ -1,13 +1,16 @@
 import copy
 import simple_colors
+from infer_context import get_context_from_inference_for_grid
 from value_iteration import labeled_RTDP, lexicographic_value_iteration
 
-def get_context_map(S, Contexts, domain_name):
+def get_context_map(S, infer_context_flag, domain_name, filename='none'):
     '''Returns a dictionary mapping each state in S to a context in Contexts.'''
     context_map = {}
+    if infer_context_flag:
+        context_map = get_context_from_inference_for_grid(domain_name, filename)
+        return context_map
     if domain_name == 'salp':
         for s in S:
-            # context_map[s] = None  # ICP by Yash
             # s = (s[0]: x, s[1]: y, s[2]: sample_with_agent, s[3]: coral_flag, s[4]: eddy, s[5]: done_flag)
             if s[2] == 'P' and s[3] is True:
                 context_map[s] = 1  # Context 2 - Prioritize coral NSE escape
@@ -17,7 +20,6 @@ def get_context_map(S, Contexts, domain_name):
                 context_map[s] = 0  # Context 1 - Prioritize Task
     elif domain_name == 'warehouse':
         for s in S:
-            # context_map[s] = None  # ICP by Yash
             # s = (s[0]: x, s[1]: y, s[2]: package_status, s[3]: slippery_tile, s[4]: narrow_corridor)
             if s[2] == 'P' and s[3] is True:
                 context_map[s] = 1  # Context 2 - Prioritize slippery tile NSE escape
@@ -27,7 +29,6 @@ def get_context_map(S, Contexts, domain_name):
                 context_map[s] = 0  # Context 1 - Prioritize package delivery Task
     elif domain_name == 'taxi':
         for s in S:
-            # context_map[s] = None  # ICP by Yash
             # s: (s[0]: x, s[1]: y, s[2]: passenger_status, s[3]: pothole, s[4]: road_type)
             if s[4] == 'A':
                 context_map[s] = 1  # Context 2 - Prioritize autonomy-enabled road

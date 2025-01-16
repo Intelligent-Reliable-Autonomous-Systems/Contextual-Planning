@@ -211,8 +211,8 @@ def evaluate_inferred_contexts(inf_data, instance_idx, perf_results_file):
         f.write('{},{},{},{}\n'.format(instance_idx, accuracy, f1, mcc))
         f.close()
 
-def get_random_initial_states(env, num_samples=5):
-    sample_space = [s for s in env.S if (s[2]=='X' and s[0] in range(0,5) and s[1] in range(0,5))]
+def get_random_initial_states(env, num_samples=10):
+    sample_space = [s for s in env.S if (s[2]=='X')] 
     if num_samples > len(sample_space):
         raise ValueError("num_samples cannot be greater than the total number of states")
     sampled_states = random.sample(sample_space, num_samples)
@@ -221,8 +221,7 @@ def get_random_initial_states(env, num_samples=5):
 
 def get_inferred_context_for_s(env_id, domain, start_state):
 
-    inf_context_filename = 'context_inference/c6_output/'+start_state+'_start_illustration_all/'+domain+'/bayes/illustration'+str(env_id)+'inference_results.csv'
-    # inf_context_filename = 'context_inference/output_without_exp_data/'+domain+'/bayes/illustration'+str(env_id)+'inference_results.csv'
+    inf_context_filename = 'context_inference/small_salp_output/'+start_state+'_start_illustration_all/'+domain+'/bayes/illustration'+str(env_id)+'inference_results.csv'
     print('domain: ', domain)
     print('env id: ', env_id)
     print('start: ', start_state)
@@ -268,3 +267,12 @@ def get_inferred_context_for_s(env_id, domain, start_state):
             state = (x, y, status, pothole, road)
             context_map[state] = inf_context
         return context_map
+    
+def dataframe_to_dict(df):
+    key_columns = df.columns[:-2]
+    value_column = df.columns[-1]
+    transformed_dict = {
+        tuple(row[key_columns]): row[value_column]
+        for _, row in df.iterrows()
+    }
+    return transformed_dict

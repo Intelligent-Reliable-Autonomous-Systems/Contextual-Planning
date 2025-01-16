@@ -43,7 +43,7 @@ class SalpEnvironment:
         self.contextual_orderings = context_ordering[context_sim]  # list of contextual orderings each a list of objectives
         self.Reward_for_obj_context = self.get_reward_functions()  # list of reward functions for each objective
         self.context_names = self.get_context_name(self.Contexts)
-        self.context_map =  MR.get_context_map(self.S, self.Contexts, 'salp')
+        self.context_map =  MR.get_context_map(self.S, context_sim==7, 'salp', filename=filename)
         self.state2context_map = self.context_map
         self.context2state_map = {}
         # print("Context: ", self.Contexts)
