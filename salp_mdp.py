@@ -321,12 +321,11 @@ class SalpAgent:
             self.r_3 += self.Grid.R3_out_context(self.s, Pi[self.s])
             self.trajectory.append((self.s, Pi[self.s]))
             self.plan += " -> " + str(Pi[self.s])
-            self.s = self.sample_state(self.s, Pi[self.s])  # self.step(self.s, Pi[self.s])
+            self.s = self.sample_state(self.s, Pi[self.s]) 
             self.path = self.path + "->" + str(self.s)
             # if s is stuck in a loop or not making progress, break
             if len(self.trajectory) > 100:
                 if self.trajectory[-1] == self.trajectory[-5]:
-                    print("Agent " + str(self.label) + " is stuck in a loop at s = "+str(self.s)+"!")
                     break
         self.trajectory.append((self.s, Pi[self.s], None))  
               
@@ -342,11 +341,10 @@ class SalpAgent:
                                     self.Grid.R2_out_context(s, a), 
                                     self.Grid.R3_out_context(s, a), 
                                     self.Grid.state2context_map[s]))
-            self.s = self.sample_state(s, a)  # self.step(self.s, Pi[self.s])
+            self.s = self.sample_state(s, a)
             # if s is stuck in a loop or not making progress, break
             if len(self.trajectory) > 20:
                 if self.trajectory[-1] == self.trajectory[-5]:
-                    print("Agent " + str(self.label) + " is stuck in a loop at s = "+str(self.s)+"!")
                     break
         self.trajectory.append((self.s, Pi[self.s], 
                                 self.Grid.R1_out_context(self.s, Pi[self.s]), 

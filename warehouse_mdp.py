@@ -289,8 +289,6 @@ class WarehouseAgent:
     def sample_state(self, s, a):
         '''Sample the next state based on the policy pi and the current state s based on transition probabilities function'''
         p = random.uniform(0, 1)
-        # print("Sampling state: ", s)
-        # print("Action for sample: ", a)
         T = self.get_transition_prob(s, a)
         cumulative_prob = 0
         for s_prime in list(T.keys()):
@@ -315,18 +313,16 @@ class WarehouseAgent:
         if Pi is None:
             Pi = copy.deepcopy(self.Pi_G)
         while not self.at_goal():
-            # print(str(self.s)+ " -> " + str(Pi[self.s]) + " -> " + str( self.step(self.s, Pi[self.s])))
             self.r_1 += self.Grid.R1_out_context(self.s, Pi[self.s])
             self.r_2 += self.Grid.R2_out_context(self.s, Pi[self.s])
             self.r_3 += self.Grid.R3_out_context(self.s, Pi[self.s])
             self.trajectory.append((self.s, Pi[self.s]))
             self.plan += " -> " + str(Pi[self.s])
-            self.s = self.sample_state(self.s, Pi[self.s])  # self.step(self.s, Pi[self.s])
+            self.s = self.sample_state(self.s, Pi[self.s])
             self.path = self.path + "->" + str(self.s)
             # if s is stuck in a loop or not making progress, break
             if len(self.trajectory) > 100:
                 if self.trajectory[-1] == self.trajectory[-5]:
-                    print("Agent " + str(self.label) + " is stuck in a loop at s = "+str(self.s)+"!")
                     break
         self.trajectory.append((self.s, Pi[self.s], None))  
               
@@ -342,11 +338,9 @@ class WarehouseAgent:
                                     self.Grid.R2_out_context(s, a), 
                                     self.Grid.R3_out_context(s, a), 
                                     self.Grid.state2context_map[s]))
-            self.s = self.sample_state(s, a)  # self.step(self.s, Pi[self.s])
-            # if s is stuck in a loop or not making progress, break
+            self.s = self.sample_state(s, a)  
             if len(self.trajectory) > 100:
                 if self.trajectory[-1] == self.trajectory[-5]:
-                    print("Agent " + str(self.label) + " is stuck in a loop at s = "+str(self.s)+"!")
                     break
         self.trajectory.append((self.s, Pi[self.s], 
                                 self.Grid.R1_out_context(self.s, Pi[self.s]), 

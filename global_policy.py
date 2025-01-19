@@ -2,6 +2,7 @@ import numpy as np
 import value_iteration
 import simple_colors
 import metareasoner as MR
+from tqdm import tqdm
 
 savenames ={0: 'Task only',
             1: 'LMDP using Omega', 
@@ -39,8 +40,6 @@ def get_global_policy(agent, context_sim):
     conflict = MR.conflict_checker(Pi_G, agent)
     if conflict:
         print(simple_colors.red('Conflict Detected!', ['bold']) )
-    else: 
-        print(simple_colors.green('No Conflicts', ['bold']))
     if context_sim == 6 and conflict:
         Pi_G = MR.conflict_resolver(Pi_G, agent)
         conflict = MR.conflict_checker(Pi_G, agent)       
@@ -51,38 +50,33 @@ def get_global_policy(agent, context_sim):
     agent.Pi_G = Pi_G
     return agent, Pi_G
 
-def get_rollout(agent, Pi_G, context_sim, display_trajecotry=False):
+def get_rollout(agent, Pi_G, context_sim, display_trajectory=False):
     '''Get the rollout for the agent for a given context simulation
     returns the rewards in all objectives and whether the agent reached the goal'''
     agent.reset()
     reached_goal = False
     agent.follow_policy_rollout(Pi_G)
     conflict = MR.conflict_checker(Pi_G, agent)
-    if display_trajecotry:
+    if display_trajectory:
         print(simple_colors.yellow('Trajectory for '+savenames[context_sim]+':', ['bold']))
         for i in range(len(agent.trajectory)):
             print(simple_colors.yellow(str(agent.trajectory[i])))
     if agent.s == agent.s_goal:
         reached_goal = True
         r1, r2, r3 = agent.r_1, agent.r_2, agent.r_3
-        # print(simple_colors.green(savenames[context_sim]+' reached the goal!', ['bold']))
     else:
         reached_goal = False
-        r1, r2, r3 = 0, 0, 0
-        # print(simple_colors.red(savenames[context_sim]+' did not reach the goal!', ['bold']))
+        r1, r2, r3 = 0, 0, 0  # if the agent did not reach the goal, the rewards are 0
     return r1, r2, r3, reached_goal, conflict
 
 def get_multiple_rollout_states(agent, Pi_G, context_sim, trials, display_trajectory=False):
     '''Get the rollout stats for the agent for a given context simulation for multiple trials
     returns the mean and standard deviation of the rewards in all objectives as a list of 2 and the number of times the agent reached the goal'''
-    R1 = []
-    R2 = []
-    R3 = []
-    max_values = {'o_1': 76, 'o_2': 100, 'o_3': 100}
-    percentile_trajectories_for_objs = {i:[] for i in [0,1,2]} # to record the number of times the agent reached a certain percentile of the maximum value as an objective based dict percentile_traj[o1] = [...]
+    R1 = R2 = R3 = []
     reached_goal_counter = 0
     conflict_counter = 0
-    for rollout in range(trials):
+    # have a progress bar for the number of rollouts
+    for rollout in tqdm(range(trials), desc="trails"):
         r1, r2, r3, reached_goal, conflict = get_rollout(agent, Pi_G, context_sim, display_trajectory)
         if reached_goal:
             reached_goal_counter += 1
@@ -99,12 +93,8 @@ def get_multiple_rollout_states(agent, Pi_G, context_sim, trials, display_trajec
     R1_stats = [round(sum(R1)/trials,2), round(np.std(R1),1)]
     R2_stats = [round(sum(R2)/trials,2), round(np.std(R2),1)]
     R3_stats = [round(sum(R3)/trials,2), round(np.std(R3),1)]
-    for i in range(0, 101,10):
-        percentile_trajectories_for_objs[0].append(sum([int(R1[j] > i*max_values['o_1']/100) for j in range(len(R1))]))
-        percentile_trajectories_for_objs[1].append(sum([int(R2[j] > i*max_values['o_2']/100) for j in range(len(R2))]))
-        percentile_trajectories_for_objs[2].append(sum([int(R3[j] > i*max_values['o_3']/100) for j in range(len(R3))]))
         
-    return R1_stats, R2_stats, R3_stats, round(reached_goal_counter/ trials * 100, 1), round(conflict_counter/ trials * 100, 1), percentile_trajectories_for_objs
+    return R1_stats, R2_stats, R3_stats, round(reached_goal_counter/ trials * 100, 1), round(conflict_counter/ trials * 100, 1)
 
 def visualize_global_policy(domain, agent, Pi_G, context_sim):
     '''Visualize the global policy for the agent for a given context simulation

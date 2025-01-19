@@ -227,17 +227,33 @@ def report_sim_results(sim_results, trials, grid_num):
         print(simple_colors.cyan('Reached Goal:', ['bold']), reached_goal_percentage, '% times.')
         print()
         
-def report_sim_results_over_grids_and_trails(sim_results_over_grids, trials):
-    for context_sim in range(7):
-        sim_names, R1_stats, R2_stats, R3_stats, reached_goal_percentage, conflict_percentage = sim_results_over_grids
-        print(simple_colors.yellow('Results for '+ sim_names[context_sim] + ' [over '+str(trials)+' over '+str(len(R1_stats[context_sim]))+' grids (15x15)]:', ['bold', 'underlined']))
-        print(simple_colors.cyan('Objective 1:', ['bold']), np.mean(R1_stats[context_sim]), '±', np.std(R1_stats[context_sim]))
-        print(simple_colors.cyan('Objective 2:', ['bold']), np.mean(R2_stats[context_sim]), '±', np.std(R2_stats[context_sim]))
-        print(simple_colors.cyan('Objective 3:', ['bold']), np.mean(R3_stats[context_sim]), '±', np.std(R3_stats[context_sim]))
-        print(simple_colors.cyan('Reached Goal:', ['bold']), np.mean(reached_goal_percentage[context_sim]),'±', np.std(reached_goal_percentage[context_sim]), '% times.')
-        print(simple_colors.cyan('Conflict:', ['bold']), np.mean(conflict_percentage[context_sim]),'±', np.std(conflict_percentage[context_sim]), '% times.')
+def report_sim_results_over_grids_and_trails(sim_names, sim_results_over_grids, trials):
+    for context_sim in range(len(sim_names)):
+        R1_means, R2_means, R3_means, reached_goal_percentages, conflict_percentages = sim_results_over_grids[context_sim]  # refer to line 43 in simulation.py for array format
+        print(simple_colors.yellow('Results for '+ sim_names[context_sim] + ' [over '+str(trials)+' over '+str(len(R1_means))+' grids (15x15)]:', ['bold', 'underlined']))
+        print(simple_colors.cyan('Objective 1:', ['bold']), np.mean(R1_means), '±', round(np.std(R1_means),1))
+        print(simple_colors.cyan('Objective 2:', ['bold']), np.mean(R2_means), '±', round(np.std(R2_means),1))
+        print(simple_colors.cyan('Objective 3:', ['bold']), np.mean(R3_means), '±', round(np.std(R3_means),1))
+        print(simple_colors.cyan('Reached Goal:', ['bold']), np.mean(reached_goal_percentages),'±', np.std(reached_goal_percentages), '% times.')
+        print(simple_colors.cyan('Conflict:', ['bold']), np.mean(conflict_percentages),'±', np.std(conflict_percentages), '% times.')
         print()
         
+#######################################################
+##############  Animation for all domains  ############
+#######################################################
+
+def animate_policy(domain, agent, Pi, savename='animation', stochastic_transition=True):
+    '''Animates the agent following the given policy and specified domain.'''
+    if domain == 'salp':
+        animate_policy_salp(agent, Pi, savename, stochastic_transition)
+    elif domain == 'warehouse':
+        animate_policy_warehouse(agent, Pi, savename, stochastic_transition)
+    elif domain == 'taxi':
+        animate_policy_taxi(agent, Pi, savename, stochastic_transition)
+    else:
+        print(simple_colors.red("Invalid domain name! Should be among ['salp', 'warehouse', 'taxi'] but got "+domain+" as input.", ['bold']))
+
+
 def display_animation(frames, savename='animation', fps=4):
     '''Displays the animation of the agent following the given policy.'''
     fig, ax = plt.subplots()
@@ -247,15 +263,10 @@ def display_animation(frames, savename='animation', fps=4):
 
     for frame in frames:
         img = mpimg.imread(frame)
-        # remove 85 pixels from each side
-        # img = img[85:img.shape[0]-85, 100:img.shape[1]-100,:]
         im = [ax.imshow(img, animated=True)]
-        # print('image shape: ', img.shape)
         ims.append(im)
 
     ani = animation.ArtistAnimation(fig, ims, interval=500, blit=True, repeat_delay=1000)
-    # plt.show()
-    # ani.save('animation/' + savename + '.gif', fps=fps)
     ani.save('animation/animation.gif', fps=fps)
 
 ############  Animation for salp domain  ############
@@ -281,6 +292,7 @@ def animate_policy_salp(agent, Pi, savename='animation', stochastic_transition=T
         get_frame_salp(agent, next_all_state, idx, s, savename)   
         frames.append('animation/{}.png'.format(idx))
     display_animation(frames, savename,fps=4)
+    print('Animation saved at animation/'+savename+'.gif')
     # delete all images
     for idx in range(len(state_list)):
         path = 'animation/{}.png'.format(idx)
@@ -331,11 +343,6 @@ def get_frame_salp(agent, grid, idx, state=None, savename='animation'):
     # Set the axis limits and hide the axes
     ax.set_xlim(0, ncols)
     ax.set_ylim(0, nrows)
-    # print('state: ', state, 'action: ', agent.Pi_G[state])
-    # print('\tR1: ', agent.Grid.R1(state, agent.Pi_G[state]))
-    # print('\tR2: ', agent.Grid.R2(state, agent.Pi_G[state]))
-    # print('\tR3: ', agent.Grid.R3(state, agent.Pi_G[state]))
-    # print()
     ax.title.set_text(savename + "\n" +
                   r"$R_1 = $" + f"{agent.r_1:3d}" + "\t" +
                   r"$R_2 = $" + f"{agent.r_2:3d}" + "\t" +
@@ -343,8 +350,6 @@ def get_frame_salp(agent, grid, idx, state=None, savename='animation'):
     agent.r_1 += agent.Grid.R1(state, agent.Pi_G[state])
     agent.r_2 += agent.Grid.R2(state, agent.Pi_G[state])
     agent.r_3 += agent.Grid.R3(state, agent.Pi_G[state])
-    # ax.title.set_text(savename)
-    # ax.title.set_text('state: ' + str(state))
     ax.invert_yaxis()
     ax.axis('off')
     
@@ -410,6 +415,7 @@ def animate_policy_warehouse(agent, Pi, savename='animation', stochastic_transit
         get_frame_warehouse(agent, next_all_state, idx, s, savename)   
         frames.append('animation/{}.png'.format(idx))
     display_animation(frames, savename,fps=2)
+    print('Animation saved at animation/'+savename+'.gif')
     # delete all images
     for idx in range(len(state_list)):
         path = 'animation/{}.png'.format(idx)
@@ -553,6 +559,7 @@ def animate_policy_taxi(agent, Pi, savename='animation', stochastic_transition=T
         get_frame_taxi(agent, next_all_state, idx, s, savename)   
         frames.append('animation/{}.png'.format(idx))
     display_animation(frames, savename,fps=1.5)
+    print('Animation saved at animation/'+savename+'.gif')
     # delete all images
     for idx in range(len(state_list)):
         path = 'animation/{}.png'.format(idx)

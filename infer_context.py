@@ -42,7 +42,6 @@ def get_context_from_inference(domain, start_state='random', with_exp_traj=False
                         file.write("\t".join(map(str, row.values)) + "\n")
             te_inference_filename = output_dir+'bayes/illustration'+str(te_instance_idx)+'inference_results.csv'
 
-        print('test instance: ', te_instance_idx)
         if domain == 'salp':
             te_env = SalpEnvironment(te_file, context_sim=7)
             te_env_agent = SalpAgent(te_env)
@@ -81,13 +80,13 @@ def get_context_from_inference_for_grid(domain, filename, start_state='random', 
             output_dir = 'context_inference/'+domain+'/'
             
             if domain == 'salp':
-                tr_env = SalpEnvironment(train_env_file, context_sim=7)
+                tr_env = SalpEnvironment(train_env_file, context_sim=6)
                 tr_env_agent = SalpAgent(tr_env)
             elif domain == 'warehouse':
-                tr_env = WarehouseEnvironment(train_env_file, context_sim=7)
+                tr_env = WarehouseEnvironment(train_env_file, context_sim=6)
                 tr_env_agent = WarehouseAgent(tr_env)
             elif domain == 'taxi':
-                tr_env = TaxiEnvironment(train_env_file, context_sim=7)
+                tr_env = TaxiEnvironment(train_env_file, context_sim=6)
                 tr_env_agent = TaxiAgent(tr_env)
 
             tr_data = get_data(tr_filename, tr_env, tr_env_agent, domain, is_train=True)
@@ -100,15 +99,14 @@ def get_context_from_inference_for_grid(domain, filename, start_state='random', 
                         file.write("\t".join(map(str, row.values)) + "\n")
             te_inference_filename = output_dir+'bayes/illustration'+str(te_instance_idx)+'inference_results.csv'
 
-        print('test instance: ', te_instance_idx)
         if domain == 'salp':
-            te_env = SalpEnvironment(te_file, context_sim=7)
+            te_env = SalpEnvironment(te_file, context_sim=6)
             te_env_agent = SalpAgent(te_env)
         elif domain == 'warehouse':
-            te_env = WarehouseEnvironment(te_file, context_sim=7)
+            te_env = WarehouseEnvironment(te_file, context_sim=6)
             te_env_agent = WarehouseAgent(te_env)
         elif domain == 'taxi':
-            te_env = TaxiEnvironment(te_file, context_sim=7)
+            te_env = TaxiEnvironment(te_file, context_sim=6)
             te_env_agent = TaxiAgent(te_env)
 
         te_data = get_data(te_file, te_env, te_env_agent, domain, is_train=False)

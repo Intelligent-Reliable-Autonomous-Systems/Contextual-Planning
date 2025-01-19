@@ -29,7 +29,6 @@ def value_iteration(agent, Reward):
             Pi[s] = max(Q[s], key=Q[s].get)
             residual[s] = abs(V[s] - V_prev[s])
         if max(residual.values()) < 1e-6 or iter > 1000:
-            # print(simple_colors.blue('Value Iteration converged in {} iterations.\n'.format(iter)))
             break
         iter += 1
     return agent, Pi
@@ -62,7 +61,6 @@ def Q_value_iteration(agent, Reward):
             Pi[s] = max(Q[s], key=Q[s].get)
             residual[s] = abs(V[s] - V_prev[s])
         if max(residual.values()) < 1e-6 or iter > 1000:
-            # print(simple_colors.blue('Value Iteration converged in {} iterations.\n'))
             break
         iter += 1
     return Q
@@ -98,7 +96,6 @@ def action_set_value_iteration(agent, Reward, Vo=None):
             Pi[s] = max(Q[s], key=Q[s].get)
             residual[s] = abs(V[s] - V_prev[s])
         if max(residual.values()) < 1e-6 or iter > 1000:
-            # print(simple_colors.green('Action Set Value Iteration converged in {} iterations.\n'.format(iter)))
             break
         iter += 1
         
@@ -130,7 +127,6 @@ def lexicographic_value_iteration(agent, ordering, context= None):
         Reward = agent.Grid.R_obs[ordering[-1]]
     print('\t\tComputing policy for '+ simple_colors.yellow('objective' + ': ' + str(ordering[-1]) + ' (' + agent.Grid.objective_names[ordering[-1]] + ')'))
     V, Pi = value_iteration(agent, Reward)
-
     return agent, Pi
 
 def LMDP_LVI(agent, ordering, Vo=None):
@@ -181,7 +177,6 @@ def scalarized_value_iteration(agent, ordering):
             Pi[s] = max(Q[s], key=Q[s].get)
             residual[s] = abs(V[s] - V_prev[s])
         if max(residual.values()) < 1e-6 or iter > 1000:
-            # print(simple_colors.blue('Value Iteration converged in {} iterations.\n'.format(iter)))
             break
         iter += 1
     return agent, Pi
@@ -281,7 +276,6 @@ def labeled_RTDP(agent, Pi_G, Reward):
                 S_solved.append(s)
                 S_unsolved.remove(s)
         if delta < epsilon or iter > 1000:
-            print(simple_colors.blue('L-RTDP converged in {} iterations.\n'.format(iter)))
             break
         iter += 1
     return V
@@ -302,13 +296,10 @@ def LMDP(agent):
     print('LMDP context update order: ', OMEGA)
     for c in OMEGA:
         print('\tComputing LMDP policy for context: ', c)
-        # print(agent.A.values())
         V, PI[c] = LMDP_LVI(agent, [c])
         for s in context2state_map[c]:
             Pi_G[s] = PI[c][s]
             agent.A[s] = [Pi_G[s]]
-            # print('\t\tState: ', s, 'Action: ', PI[c][s])
-        # exit(0)
-    
+
     agent.Pi_G = Pi_G
     return agent, Pi_G

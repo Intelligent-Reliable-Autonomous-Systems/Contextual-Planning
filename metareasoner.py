@@ -42,10 +42,7 @@ def conflict_checker(Pi, agent):
     '''Returns a boolean indicating whether there is a conflict in Pi between contextual objectives.'''
     Reachability_Reward = {s: 0 for s in agent.S}
     Reachability_Reward[agent.s_goal] = 1.0
-    # print(simple_colors.cyan('agent.s_goal = '+str(agent.s_goal), ['bold']))
     V = labeled_RTDP(agent, Pi, Reachability_Reward)
-    # for s in agent.S:
-    #     print("V[", s, "] = ", V[s])
     if any([V[s] == 0.0 for s in agent.S]):
         print(simple_colors.red('Conflict States: ', ['bold']))
         for s in agent.S:
