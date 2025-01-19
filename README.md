@@ -1,4 +1,4 @@
-## Multi-Objective Planning with Contextual Lexicographic Reward Preferences
+# Multi-Objective Planning with Contextual Lexicographic Reward Preferences
 This code compares our contextual planning approach for multi-objective planning to state-of-the-art baselines. Refer to [project page](https://pulkitrustagi.github.io/contextual-planning-project/) and [paper](https://pulkitrustagi.github.io/contextual-planning-project/) for more information.
 
 ### Running the Simulation
