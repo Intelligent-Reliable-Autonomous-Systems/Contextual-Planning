@@ -58,5 +58,5 @@ salp_agent = SalpAgent(salp_env)  # initialize salp agent in the salp_env enviro
 salp_agent, policy = global_policy.get_global_policy(salp_agent, context_sim=0)  # compute policy for context_sim = 0 (task only) 
 display.animate_policy('salp', salp_agent, policy, savename='animation', stochastic_transition=True)
 ```
-![animation](https://github.com/user-attachments/assets/884aa270-c60d-4833-a494-102dd2355cc6)
+<p align="center">![animation](https://github.com/user-attachments/assets/884aa270-c60d-4833-a494-102dd2355cc6)</p>
 
