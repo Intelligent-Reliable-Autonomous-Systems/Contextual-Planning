@@ -59,6 +59,5 @@ salp_agent, policy = global_policy.get_global_policy(salp_agent, context_sim=0) 
 display.animate_policy('salp', salp_agent, policy, savename='animation', stochastic_transition=True)
 ```
 <p align="center">
-  ![animation](https://github.com/user-attachments/assets/884aa270-c60d-4833-a494-102dd2355cc6)
+  <img src="https://github.com/user-attachments/assets/884aa270-c60d-4833-a494-102dd2355cc6" alt="animation" />
 </p>
-
